@@ -45,10 +45,17 @@ namespace Zipper
                     MessageBox.Show("Folder not selected", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                Compresser.Decode(ofd.FileName, _folderPathToDecode);
+                try
+                {
+                    Compresser.Decode(ofd.FileName, _folderPathToDecode);
+                    MessageBox.Show("Decoded", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Decoding error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
 
-            MessageBox.Show("Decoded", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void OnSelectFolderClick(object sender, RoutedEventArgs e)

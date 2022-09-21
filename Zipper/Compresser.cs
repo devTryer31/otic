@@ -8,7 +8,14 @@ namespace Zipper
 {
     static public class Compresser
     {
-        private static byte[] _sig = new byte[] { 0xFA, 0xAC };
+        private static byte[] _sig = new byte[] { 0xFA, 0xAA, 0xAA, 0xAC };
+        private const int _version = 1;
+        private const byte _byteCompressWithContext = 0;
+        private const byte _byteCompress = 0;
+        private const byte _byteInterferenceProtection = 0;
+        private const byte _byteBuffer = 0;
+
+        private static readonly int _headerBytesCount = _sig.Length + 4 + 1 * 4;
 
         public static FileInfo InitFile(in string resFilePath)
         {
@@ -19,6 +26,11 @@ namespace Zipper
             using var sw = new BinaryWriter(fileInfo.OpenWrite());
 
             sw.Write(_sig);
+            sw.Write(_version);
+            sw.Write(_byteCompressWithContext);
+            sw.Write(_byteCompress);
+            sw.Write(_byteInterferenceProtection);
+            sw.Write(_byteBuffer);
             return fileInfo;
         }
 
@@ -26,34 +38,40 @@ namespace Zipper
         {
             FileInfo fInfo = InitFile(resFilePath);
             using var sw = new BinaryWriter(fInfo.OpenWrite());
-            sw.Seek(2, SeekOrigin.Begin);//Skip signature.
-            long filesDataStartPosition = 2L;
+            sw.Seek(_headerBytesCount, SeekOrigin.Begin);//Skip signature.
+            long filesDataStartPosition = _headerBytesCount;
 
             var foldersStoreInfo = GetFoldersPathsToStore(foldersPaths);
-            sw.Write(0L);
+            sw.Write(0L); //Write files data start pointer. Write 0L now, later we rewrite it. 
             filesDataStartPosition += 8L;
+            //Writing folders data.
             Dictionary<string, long> foldersPointers = new(foldersStoreInfo.Count);
             sw.Write(foldersStoreInfo.Count);
             filesDataStartPosition += 4L;
             foreach (var folder in foldersStoreInfo)
             {
+                //Folder item is [lenName][Name] struct. Ex: a\b\as\ => '7a\b\as\' in bytes presentation.
                 foldersPointers.Add(folder, sw.BaseStream.Position);
                 var folderInfoBytes = Encoding.UTF8.GetBytes(folder);
                 sw.Write(folderInfoBytes.Length);
                 sw.Write(folderInfoBytes);
                 filesDataStartPosition += 4 + folderInfoBytes.Length;
             }
+            //Rewrite files data start pointer.
             int tmpPtr = (int)sw.BaseStream.Position;
-            sw.Seek(2, SeekOrigin.Begin);
+            sw.Seek(_headerBytesCount, SeekOrigin.Begin);
             sw.Write(filesDataStartPosition);
             sw.Seek(tmpPtr, SeekOrigin.Begin);
 
             var allFiles = GetAllFilesFromDirectories(foldersPaths);
             allFiles.AddRange(filesPaths);
 
+            //Writing all files (with in directories) data.
+            //File item is [folderInfoPointer][lenName][Name][lenData][Data] struct.
             sw.Write(allFiles.Count);
             foreach (var f in allFiles.Select(p => new FileInfo(p)))
             {
+                //Write folder info pointer written above.
                 var dInfo = foldersPointers.Keys.FirstOrDefault(k => f.DirectoryName?.EndsWith(k) is true);
                 if (dInfo is not null)
                     sw.Write(foldersPointers[dInfo]);
@@ -61,11 +79,11 @@ namespace Zipper
                     sw.Write(0L);
 
                 byte[] nameBytes = Encoding.UTF8.GetBytes(f.Name);
-
                 sw.Write(nameBytes.Length);
                 sw.Write(nameBytes);
+
                 sw.Write(f.Length);
-                sw.Write(File.ReadAllBytes(f.FullName));
+                sw.Write(File.ReadAllBytes(f.FullName));//Can broke on large files >2Gb.
             }
         }
 
@@ -128,9 +146,24 @@ namespace Zipper
 
             using var sr = new BinaryReader(File.OpenRead(filePath));
 
-            byte[] fSig = sr.ReadBytes(2);
+            byte[] fSig = sr.ReadBytes(_sig.Length);
             if (!_sig.SequenceEqual(fSig))
                 throw new ArgumentException("Signature invalid");
+
+            int version = sr.ReadInt32();
+            if (version != _version)
+                throw new ArgumentException($"The version {version} is not supported. Current is {_version}");
+
+            byte byteCompressWithContext = sr.ReadByte();
+            if (byteCompressWithContext != _byteCompressWithContext)
+                throw new ArgumentException($"The compress with context version {byteCompressWithContext} is not supported. Current is {_byteCompressWithContext}");
+            byte byteCompress = sr.ReadByte();
+            if (byteCompress != _byteCompress)
+                throw new ArgumentException($"The compress without context version {byteCompress} is not supported. Current is {_byteCompress}");
+            byte byteInterferenceProtection = sr.ReadByte();
+            if (byteInterferenceProtection != _byteInterferenceProtection)
+                throw new ArgumentException($"The interference protection version {byteInterferenceProtection} is not supported. Current is {_byteInterferenceProtection}");
+            byte byteBuffer = sr.ReadByte();
 
             long toSkipBytes = sr.ReadInt64();
             int dirsCont = sr.ReadInt32();
@@ -149,7 +182,7 @@ namespace Zipper
             {
                 string folderInfo = string.Empty;
                 long folderInfoPtr = sr.ReadInt64();
-                if(folderInfoPtr != 0L)
+                if (folderInfoPtr != 0L)
                     folderInfo = GetStringFromPointer(sr, folderInfoPtr);
 
 
@@ -162,6 +195,11 @@ namespace Zipper
             }
         }
 
+        /// <summary>
+        /// Read string from file by <paramref name="br"/> in pointer <paramref name="pointer"/>
+        /// with struct [stringLen][string] in bytes representation.
+        /// </summary>
+        /// <returns>Readed string.</returns>
         private static string GetStringFromPointer(in BinaryReader br, long pointer)
         {
             long currentPtr = br.BaseStream.Position;
