@@ -29,23 +29,27 @@ namespace Zipper
                 .ToList();
 
             EncodBytes(sortedBytesFrequency);
+
+
+            foreach (var p in _bytesCode)
+            {
+               System.Diagnostics.Debug.WriteLine($"{p.Key} : [{string.Join("", p.Value.Select(b => b ? 1 : 0))}]");
+            }
         }
 
         public void EncodBytes(FrequencyList bytesPart)
         {
-            if(bytesPart.Count == 1)
+            if (bytesPart.Count == 1)
                 return;
 
             long lSum = 0, rSum = 0;
-            int l = 0, r = bytesPart.Count - 1;
+            int l = -1, r = bytesPart.Count;
             while (true)
             {
-                lSum += bytesPart[l].Count;
-                rSum += bytesPart[r].Count;
                 if (lSum < rSum)
-                    ++l;
+                    lSum += bytesPart[++l].Count;
                 else
-                    --r;
+                    rSum += bytesPart[--r].Count;
                 if (r - l == 1)
                     break;
             }
@@ -55,7 +59,7 @@ namespace Zipper
 
             foreach (var t in lhs)
             {
-                if(!_bytesCode.ContainsKey(t.Byte))
+                if (!_bytesCode.ContainsKey(t.Byte))
                     _bytesCode.Add(t.Byte, new List<bool>());
 
                 _bytesCode[t.Byte].Add(false);
@@ -63,7 +67,7 @@ namespace Zipper
 
             foreach (var t in rhs)
             {
-                if(!_bytesCode.ContainsKey(t.Byte))
+                if (!_bytesCode.ContainsKey(t.Byte))
                     _bytesCode.Add(t.Byte, new List<bool>());
 
                 _bytesCode[t.Byte].Add(true);
