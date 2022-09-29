@@ -10,6 +10,7 @@ namespace Zipper
 
         private Dictionary<byte, long> _bytesFrequency = new();
         private Dictionary<byte, List<bool>> _bytesCode = new();
+        private readonly byte[] _bytes;
 
         public SFTree(byte[] bytes)
         {
@@ -25,15 +26,34 @@ namespace Zipper
                 .Select(p => (p.Key, p.Value))
                 .ToList();
 
-            EncodeBytes(sortedBytesFrequency);
+            BuildTree(sortedBytesFrequency);
 
 #if DEBUG
             foreach (var p in _bytesCode)
                 System.Diagnostics.Debug.WriteLine($"{p.Key} : [{string.Join("", p.Value.Select(b => b ? 1 : 0))}]");
 #endif
+            _bytes = bytes;
         }
 
-        public void EncodeBytes(FrequencyList bytesPart)
+        public IEnumerable<byte> GetTreeInBytes()
+        {
+            //Создадим лист битов, который потом будем переводить в байты.
+            List<bool> tree = new(_bytesCode.Count * (8 + 2));
+            foreach (var (bt, code) in _bytesCode)
+            {
+                var byteBits = bt.ToBits();
+                tree.AddRange(byteBits);
+
+                byte codeLen = (byte)code.Count;//У нас не будет кода, большего byte.MaxValue
+                tree.AddRange(codeLen.ToBits());
+
+                tree.AddRange(code);
+            }
+
+            return tree.ToBytes();
+        }
+
+        private void BuildTree(FrequencyList bytesPart)
         {
             if (bytesPart.Count == 1)
                 return;
@@ -69,8 +89,17 @@ namespace Zipper
                 _bytesCode[t.Byte].Add(true);
             }
 
-            EncodeBytes(lhs);
-            EncodeBytes(rhs);
+            BuildTree(lhs);
+            BuildTree(rhs);
+        }
+
+        public IEnumerable<byte> EncodeBytes()
+        {
+            List<bool> bitsEncoded = new(_bytes.Length * 2);
+            foreach (var b in _bytes)
+                bitsEncoded.AddRange(_bytesCode[b]);
+            
+            return bitsEncoded.ToBytes();
         }
 
         public List<byte> DecodeBytes(byte[] data, int startBytesLen)
