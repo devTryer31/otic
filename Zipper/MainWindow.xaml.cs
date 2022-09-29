@@ -73,6 +73,7 @@ namespace Zipper
             var isDirectory = droppedPaths
                 .Select(data => File.GetAttributes(data).HasFlag(FileAttributes.Directory))
                 .ToList();
+            //var a = new SFTree(File.ReadAllBytes(droppedPaths.First()));
 
             List<string> filesPaths = new();
             List<string> foldersPaths = new();
