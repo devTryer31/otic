@@ -75,6 +75,7 @@ namespace Zipper
                 .ToList();
             //var a = new SFTree(File.ReadAllBytes(droppedPaths.First()));
 
+            //a.DecodeBytes(new byte[] { 0x5, 0x80}, 7);
             List<string> filesPaths = new();
             List<string> foldersPaths = new();
             for (int i = 0; i < isDirectory.Count; ++i)
