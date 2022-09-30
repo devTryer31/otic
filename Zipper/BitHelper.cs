@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Zipper
 {
@@ -37,6 +38,17 @@ namespace Zipper
                 currentByte <<= 1;
             ans.Add(currentByte);
 
+            return ans;
+        }
+
+        public static byte GetByteFromBits(this IEnumerable<bool> bits)
+        {
+            byte ans = (byte)(bits.First() ? 1 : 0);
+            foreach (bool bit in bits.Skip(1))
+            {
+                ans <<= 1;
+                ans += (byte)(bit ? 1 : 0);
+            }
             return ans;
         }
     }

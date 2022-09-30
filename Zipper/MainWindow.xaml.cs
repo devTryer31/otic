@@ -74,12 +74,6 @@ namespace Zipper
                 .Select(data => File.GetAttributes(data).HasFlag(FileAttributes.Directory))
                 .ToList();
 
-            //byte[] firstBytes = File.ReadAllBytes(droppedPaths.First());
-            //var a = new SFTree(firstBytes);
-            ////a.DecodeBytes(new byte[] { 0x5, 0x80 }, 7);
-            //var bytes = a.EncodeBytes().ToArray();
-            //var decodet = a.DecodeBytes(bytes, firstBytes.Length);
-
             List<string> filesPaths = new();
             List<string> foldersPaths = new();
             for (int i = 0; i < isDirectory.Count; ++i)

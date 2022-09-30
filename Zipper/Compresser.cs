@@ -82,8 +82,18 @@ namespace Zipper
                 sw.Write(nameBytes.Length);
                 sw.Write(nameBytes);
 
+                var fileData = File.ReadAllBytes(f.FullName);//Can broke on large files >2Gb.
+
+                var tree = new SFTree(fileData);
+                var treeBytes = tree.GetTreeInBytes();
+                sw.Write(treeBytes.Count);
+                sw.Write(treeBytes.ToArray());
+
+                var codedFileData = tree.EncodeBytes().ToArray();
+
                 sw.Write(f.Length);
-                sw.Write(File.ReadAllBytes(f.FullName));//Can broke on large files >2Gb.
+                sw.Write(codedFileData.Length);
+                sw.Write(codedFileData);
             }
         }
 
@@ -188,10 +198,19 @@ namespace Zipper
 
                 int nameLen = sr.ReadInt32();
                 string fileName = Encoding.UTF8.GetString(sr.ReadBytes(nameLen));
+
+                int treeLen = sr.ReadInt32();
+                var treeInBytes = sr.ReadBytes(treeLen);
+
                 long fileLen = sr.ReadInt64();
+                int encodedDataLen = sr.ReadInt32();
+                var encodedData = sr.ReadBytes(encodedDataLen);
+
+                var decodedData = SFTree.DecodeBytes(encodedData, (int)fileLen, treeInBytes.ToList());
 
                 string fileFullPath = Path.Combine(folderPath, folderInfo, fileName);
-                File.WriteAllBytes(fileFullPath, sr.ReadBytes((int)fileLen));//if >2gb file will err.
+                File.WriteAllBytes(fileFullPath, decodedData.ToArray());//if >2gb file will err.
+                System.Diagnostics.Debug.WriteLine(fileName + "ЗАПИСАНО");
             }
         }
 
