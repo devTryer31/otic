@@ -1,16 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace Zipper
 {
     using FrequencyList = List<(byte Byte, long Count)>;
+    using BytesCodes = Dictionary<byte, List<bool>>;
+
     public class SFTree
     {
 
         private Dictionary<byte, long> _bytesFrequency = new();
-        private Dictionary<byte, List<bool>> _bytesCode = new();
+        private readonly BytesCodes _bytesCode;
         private readonly byte[] _bytes;
+        private readonly FrequencyList _sortedBytesFrequency;
 
         public SFTree(byte[] bytes)
         {
@@ -21,12 +25,13 @@ namespace Zipper
                 ++_bytesFrequency[b];
             }
 
-            var sortedBytesFrequency = _bytesFrequency
+            _sortedBytesFrequency = _bytesFrequency
                 .OrderByDescending(p => p.Value)
+                .ThenBy(p => p.Key)
                 .Select(p => (p.Key, p.Value))
                 .ToList();
 
-            BuildTree(sortedBytesFrequency);
+            _bytesCode = BuildTree(_sortedBytesFrequency);
 
 #if DEBUG
             foreach (var p in _bytesCode)
@@ -35,59 +40,44 @@ namespace Zipper
             _bytes = bytes;
         }
 
-        public List<byte> GetTreeInBytes()
+        public List<byte> GetFrequenciesInBytes()
         {
-            //Создадим лист битов, который потом будем переводить в байты.
-            List<bool> tree = new(_bytesCode.Count * (8 + 2));
-            foreach (var (bt, code) in _bytesCode)
+            List<byte> ans = new(4 + _sortedBytesFrequency.Count * (8 + 1));
+            //Добавляем количество частотночтей.
+            ans.AddRange(BitConverter.GetBytes(_sortedBytesFrequency.Count));
+            foreach (var (b, freq) in _sortedBytesFrequency)
             {
-                var byteBits = bt.ToBits();
-                tree.AddRange(byteBits);
-
-                //У нас не будет кода, большего byte / 2 символов
-                byte codeLen = (byte)code.Count;
-                var cntBits = codeLen.ToBits();
-
-                tree.AddRange(cntBits);
-
-                tree.AddRange(code);
-                //tree.AddRange(Enumerable.Repeat(false, 20 - code.Count));
-            }
-
-            return tree.ToBytes().ToList();
-        }
-
-        private static Dictionary<byte, List<bool>> GetTreeFromBytes(List<byte> tree, int startBytesLen)
-        {
-            Dictionary<byte, List<bool>> ans = new();
-
-            List<bool> bitsTree = new(tree.Count * 8);
-            tree.ForEach(b => bitsTree.AddRange(b.ToBits()));
-
-            int i = 0, cntReaded = 0;
-            while (i < bitsTree.Count - 8 && cntReaded < startBytesLen)
-            {
-                byte symbol = bitsTree.GetRange(i, 8).ToBytes().First();
-                i += 8;
-                byte codeLen = bitsTree.GetRange(i, 8).ToBytes().First();
-                i += 8;
-
-                var code = bitsTree.GetRange(i, codeLen);
-                i += codeLen;
-
-                if (!ans.ContainsKey(symbol))
-                    ans.Add(symbol, code);
-
-                ++cntReaded;
-                //ans[symbol] = code;
+                //Добавляем сам кодируемый байт.
+                ans.Add(b);
+                //Добавляем саму частотность.
+                ans.AddRange(BitConverter.GetBytes(freq));
             }
             return ans;
         }
 
-        private void BuildTree(FrequencyList bytesPart)
+        private static BytesCodes GetTreeFromBytes(List<byte> frequencies)
         {
+            var frequenciesArr = frequencies.ToArray();
+            using var sr = new BinaryReader(new MemoryStream(frequenciesArr));
+            //Читаем количество частотночтей.
+            int frCount = sr.ReadInt32();
+
+            FrequencyList decodedFrequencies = new(frCount);
+
+            //Читаем кодируемые байы и их частотность.
+            for (int i = 0; i < frCount; i++)
+                decodedFrequencies.Add((sr.ReadByte(), sr.ReadInt64()));
+            
+            return BuildTree(decodedFrequencies);
+        }
+
+        private static BytesCodes BuildTree(in FrequencyList bytesPart, BytesCodes? bytesCodes = null)
+        {
+            if(bytesCodes is null)
+                bytesCodes = new();
+
             if (bytesPart.Count <= 1)
-                return;
+                return bytesCodes;
 
             long lSum = 0, rSum = 0;
             int l = -1, r = bytesPart.Count;
@@ -110,22 +100,24 @@ namespace Zipper
 
             foreach (var t in lhs)
             {
-                if (!_bytesCode.ContainsKey(t.Byte))
-                    _bytesCode.Add(t.Byte, new List<bool>());
+                if (!bytesCodes.ContainsKey(t.Byte))
+                    bytesCodes.Add(t.Byte, new List<bool>());
 
-                _bytesCode[t.Byte].Add(false);
+                bytesCodes[t.Byte].Add(false);
             }
 
             foreach (var t in rhs)
             {
-                if (!_bytesCode.ContainsKey(t.Byte))
-                    _bytesCode.Add(t.Byte, new List<bool>());
+                if (!bytesCodes.ContainsKey(t.Byte))
+                    bytesCodes.Add(t.Byte, new List<bool>());
 
-                _bytesCode[t.Byte].Add(true);
+                bytesCodes[t.Byte].Add(true);
             }
 
-            BuildTree(lhs);
-            BuildTree(rhs);
+            BuildTree(lhs, bytesCodes);
+            BuildTree(rhs, bytesCodes);
+
+            return bytesCodes;
         }
 
         public IEnumerable<byte> EncodeBytes()
@@ -137,13 +129,13 @@ namespace Zipper
             return bitsEncoded.ToBytes();
         }
 
-        public static List<byte> DecodeBytes(byte[] data, int startBytesLen, List<byte> tree)
+        public static List<byte> DecodeBytes(byte[] data, int startBytesLen, List<byte> frequencies)
         {
-            var bytesCode = GetTreeFromBytes(tree, startBytesLen);
+            var bytesCode = GetTreeFromBytes(frequencies);
 
             var codes = bytesCode.Values.ToList();
             List<List<bool>> prediction = codes;
-            List<byte> decoded = new();
+            List<byte> decoded = new(startBytesLen);
 
             int searchIdx = 0;
             for (int i = 0; i < data.Length; i++)
@@ -167,7 +159,7 @@ namespace Zipper
 
                     if (prediction.Count == 1)
                     {
-                        decoded.Add(bytesCode.First(p => p.Value == prediction[0]).Key);
+                        decoded.Add(bytesCode.First(p => Enumerable.SequenceEqual(p.Value, prediction[0])).Key);
                         if (decoded.Count == startBytesLen)
                             return decoded;
                         prediction = codes;
