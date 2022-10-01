@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Zipper"
         mc:Ignorable="d"
-        Title="Zipper" Height="150" Width="250" WindowStartupLocation="CenterScreen">
+        Title="Zipper" Height="150" Width="250" WindowStartupLocation="Manual">
     <TabControl>
         <TabItem Header="Encode">
             <DockPanel>

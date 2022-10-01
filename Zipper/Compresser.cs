@@ -23,7 +23,7 @@ namespace Zipper
                 throw new ArgumentNullException(nameof(resFilePath));
 
             var fileInfo = new FileInfo(resFilePath);
-            using var sw = new BinaryWriter(fileInfo.OpenWrite());
+            using var sw = new BinaryWriter(fileInfo.Open(FileMode.Create));
 
             sw.Write(_sig);
             sw.Write(_version);
@@ -82,8 +82,18 @@ namespace Zipper
                 sw.Write(nameBytes.Length);
                 sw.Write(nameBytes);
 
+                var fileData = File.ReadAllBytes(f.FullName);//Can broke on large files >2Gb.
+
+                var tree = new SFTree(fileData);
+                var freqBytes = tree.GetFrequenciesInBytes();
+                sw.Write(freqBytes.Count);
+                sw.Write(freqBytes.ToArray());
+
+                var codedFileData = tree.EncodeBytes().ToArray();
+
                 sw.Write(f.Length);
-                sw.Write(File.ReadAllBytes(f.FullName));//Can broke on large files >2Gb.
+                sw.Write(codedFileData.Length);
+                sw.Write(codedFileData);
             }
         }
 
@@ -188,10 +198,19 @@ namespace Zipper
 
                 int nameLen = sr.ReadInt32();
                 string fileName = Encoding.UTF8.GetString(sr.ReadBytes(nameLen));
+
+                int freqsLen = sr.ReadInt32();
+                var freqsInBytes = sr.ReadBytes(freqsLen);
+
                 long fileLen = sr.ReadInt64();
+                int encodedDataLen = sr.ReadInt32();
+                var encodedData = sr.ReadBytes(encodedDataLen);
+
+                var decodedData = SFTree.DecodeBytes(encodedData, (int)fileLen, freqsInBytes.ToList());
 
                 string fileFullPath = Path.Combine(folderPath, folderInfo, fileName);
-                File.WriteAllBytes(fileFullPath, sr.ReadBytes((int)fileLen));//if >2gb file will err.
+                File.WriteAllBytes(fileFullPath, decodedData.ToArray());//if >2gb file will err.
+                System.Diagnostics.Debug.WriteLine(fileName + "ЗАПИСАНО");
             }
         }
 
