@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Windows.Forms;
 
 namespace Zipper
 {
-    using FrequencyList = List<(byte Byte, long Count)>;
+    using FrequencyList = List<(byte Byte, byte Count)>;
     using BytesCodes = Dictionary<byte, List<bool>>;
 
     public class SFTree
@@ -26,31 +27,37 @@ namespace Zipper
             }
 
             _sortedBytesFrequency = _bytesFrequency
-                .OrderByDescending(p => p.Value)
-                .ThenBy(p => p.Key)
-                .Select(p => (p.Key, p.Value))
+                .Select(p => (Byte: p.Key, Count: NormalizeLongLinear(p.Value)))
+                .OrderByDescending(i => i.Count)
+                .ThenBy(p => p.Byte)
                 .ToList();
 
             _bytesCode = BuildTree(_sortedBytesFrequency);
 
 #if DEBUG
             foreach (var p in _bytesCode)
-                System.Diagnostics.Debug.WriteLine($"{p.Key} : [{string.Join("", p.Value.Select(b => b ? 1 : 0))}] len = {p.Value.Count} bit count->{_bytesFrequency[p.Key]}");
+                System.Diagnostics.Debug.WriteLine($"{p.Key} : [{string.Join("", p.Value.Select(b => b ? 1 : 0))}] len = {p.Value.Count}");
 #endif
             _bytes = bytes;
         }
 
+        private static byte NormalizeLongLinear(long source)
+            => (byte)(1 + (source - byte.MinValue - 1) / (byte.MaxValue - byte.MinValue - 1));
+
         public List<byte> GetFrequenciesInBytes()
         {
-            List<byte> ans = new(4 + _sortedBytesFrequency.Count * (8 + 1));
-            //Добавляем количество частотночтей.
-            ans.AddRange(BitConverter.GetBytes(_sortedBytesFrequency.Count));
-            foreach (var (b, freq) in _sortedBytesFrequency)
+            List<byte> ans = new();
+            for (int i = byte.MinValue; i <= byte.MaxValue; i++)
             {
-                //Добавляем сам кодируемый байт.
-                ans.Add(b);
-                //Добавляем саму частотность.
-                ans.AddRange(BitConverter.GetBytes(freq));
+                byte b = (byte)i;
+
+                if (!_bytesFrequency.ContainsKey(b))
+                    ans.Add(0);
+                else
+                {
+                    byte normalizedFreq = NormalizeLongLinear(_bytesFrequency[b]);
+                    ans.Add(normalizedFreq);
+                }
             }
             return ans;
         }
@@ -59,16 +66,21 @@ namespace Zipper
         {
             var frequenciesArr = frequencies.ToArray();
             using var sr = new BinaryReader(new MemoryStream(frequenciesArr));
-            //Читаем количество частотночтей.
-            int frCount = sr.ReadInt32();
+            FrequencyList decodedFrequencies = new(byte.MaxValue);
 
-            FrequencyList decodedFrequencies = new(frCount);
+            //Читаем частотности байтов.
+            for (int i = 0; i <= byte.MaxValue; i++)
+            {
+                byte bi = (byte)i;
 
-            //Читаем кодируемые байы и их частотность.
-            for (int i = 0; i < frCount; i++)
-                decodedFrequencies.Add((sr.ReadByte(), sr.ReadInt64()));
-            
-            return BuildTree(decodedFrequencies);
+                byte b = sr.ReadByte();
+                if (b != 0)
+                    decodedFrequencies.Add((bi, b));
+            }
+
+            return BuildTree(decodedFrequencies.OrderByDescending(p => p.Count)
+                .ThenBy(p => p.Byte)
+                .ToList());
         }
 
         private static BytesCodes BuildTree(in FrequencyList bytesPart, BytesCodes? bytesCodes = null)
@@ -132,6 +144,11 @@ namespace Zipper
         public static List<byte> DecodeBytes(byte[] data, int startBytesLen, List<byte> frequencies)
         {
             var bytesCode = GetTreeFromBytes(frequencies);
+
+#if DEBUG
+            foreach (var p in bytesCode)
+                System.Diagnostics.Debug.WriteLine($"{p.Key} : [{string.Join("", p.Value.Select(b => b ? 1 : 0))}] len = {p.Value.Count}");
+#endif
 
             var codes = bytesCode.Values.ToList();
             List<List<bool>> prediction = codes;
