@@ -21,13 +21,16 @@ namespace Zipper
             //Записываем все целые байты.
             List<byte> ans = new(bits.Count / 8 + 1);
             byte currentByte = 0;
+            int bitsCounter = 0;
             for (int i = 0; i < bits.Count; i++)
             {
                 currentByte += (byte)(bits[i] ? 1 : 0);
-                if (i % 7 == 0 && i != 0)
+                bitsCounter++;
+                if (bitsCounter == 8)
                 {
                     ans.Add(currentByte);
                     currentByte = 0;
+                    bitsCounter = 0;
                 }
                 currentByte <<= 1;
             }
