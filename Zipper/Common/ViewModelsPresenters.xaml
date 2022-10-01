@@ -1,0 +1,34 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:Zipper.ViewModels"
+                    xmlns:common="clr-namespace:Zipper.Common">
+
+    <DataTemplate DataType="{x:Type vm:CompresserViewModel}">
+        <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom">
+                <Button Content="Decode" Command="{Binding DecodeCommand}"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Left" Text="Установлено: "/>
+                    <TextBlock Text="{Binding FaacFileName}"
+                                ToolTip="{Binding FaacFilePath}"/>
+                </DockPanel>
+            </StackPanel>
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Bottom">
+                    <TextBlock DockPanel.Dock="Left" Text="Утсановлено: "/>
+                    <TextBlock Text="{Binding DefaultEncodedFolder}"
+                            ToolTip="{Binding DefaultFilesFolderPath}"/>
+                </DockPanel>
+
+                <TextBlock Text="Drag and drop files/folders here"
+                           VerticalAlignment="Stretch"
+                           HorizontalAlignment="Stretch"
+                           TextAlignment="Center"
+                           AllowDrop="True"
+                           common:DropBehavior.PreviewDropCommand="{Binding PreviewDropCommand}"     
+                           />
+            </DockPanel>
+        </DockPanel>
+    </DataTemplate>
+</ResourceDictionary>

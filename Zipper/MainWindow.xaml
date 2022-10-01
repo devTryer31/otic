@@ -3,26 +3,47 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Zipper"
+        xmlns:vm="clr-namespace:Zipper.ViewModels"
         mc:Ignorable="d"
         Title="Zipper" Height="150" Width="250" WindowStartupLocation="Manual">
-    <TabControl>
-        <TabItem Header="Encode">
-            <DockPanel>
-                <TextBlock Text="Drag and drop files/folders here"
-                           VerticalAlignment="Stretch"
-                           HorizontalAlignment="Stretch"
-                           TextAlignment="Center"
-                           AllowDrop="True" Drop="OnFilesDropped"/>
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Decode">
-            <UniformGrid Columns="2" Rows="1">
-                <Button Content="Decode" Click="OnDecodeBtnClick"
-                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <Button Content="Select Result Folder" Click="OnSelectFolderClick"
-                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </UniformGrid>
-        </TabItem>
-    </TabControl>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Common/ViewModelsPresenters.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.DataContext>
+        <vm:MainWindowViewModel/>
+    </Window.DataContext>
+    
+    
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Width="20">
+            <Button Background="White" BorderThickness="0">
+                <StaticResource ResourceKey="SettingsIcon"/>
+            </Button>
+        </StackPanel>
+        <ContentControl Content="{Binding CurrentViewModel, UpdateSourceTrigger=PropertyChanged}"/>
+        <!--<TabControl>
+            <TabItem Header="Encode">
+                <DockPanel>
+                    <TextBlock Text="Drag and drop files/folders here"
+                               VerticalAlignment="Stretch"
+                               HorizontalAlignment="Stretch"
+                               TextAlignment="Center"
+                               AllowDrop="True" Drop="OnFilesDropped"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Decode">
+                <UniformGrid Columns="2" Rows="1">
+                    <Button Content="Decode" Click="OnDecodeBtnClick"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Button Content="Select Result Folder" Click="OnSelectFolderClick"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </UniformGrid>
+            </TabItem>
+        </TabControl>-->
+    </DockPanel>
 </Window>
