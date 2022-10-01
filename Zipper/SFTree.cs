@@ -41,8 +41,8 @@ namespace Zipper
             _bytes = bytes;
         }
 
-        private static byte NormalizeLongLinear(long source)
-            => (byte)(1 + (source - byte.MinValue - 1) / (byte.MaxValue - byte.MinValue - 1));
+        private byte NormalizeLongLinear(long source)
+            => (byte)(1 + (source - 1) * (byte.MaxValue - 1) / (_bytesFrequency.Values.Max() - 1));
 
         public List<byte> GetFrequenciesInBytes()
         {
