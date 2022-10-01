@@ -31,4 +31,12 @@
             </DockPanel>
         </DockPanel>
     </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+        <StackPanel>
+            <ComboBox ItemsSource="{Binding EncodingTypes}"
+                      SelectedItem="{Binding SelectedEncodingType}">
+            </ComboBox>
+        </StackPanel>
+    </DataTemplate>
 </ResourceDictionary>

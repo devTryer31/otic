@@ -21,29 +21,10 @@
     
     <DockPanel>
         <StackPanel DockPanel.Dock="Right" Width="20">
-            <Button Background="White" BorderThickness="0">
+            <ToggleButton Background="White" BorderThickness="0" IsChecked="{Binding IsSettingsOn}">
                 <StaticResource ResourceKey="SettingsIcon"/>
-            </Button>
+            </ToggleButton>
         </StackPanel>
         <ContentControl Content="{Binding CurrentViewModel, UpdateSourceTrigger=PropertyChanged}"/>
-        <!--<TabControl>
-            <TabItem Header="Encode">
-                <DockPanel>
-                    <TextBlock Text="Drag and drop files/folders here"
-                               VerticalAlignment="Stretch"
-                               HorizontalAlignment="Stretch"
-                               TextAlignment="Center"
-                               AllowDrop="True" Drop="OnFilesDropped"/>
-                </DockPanel>
-            </TabItem>
-            <TabItem Header="Decode">
-                <UniformGrid Columns="2" Rows="1">
-                    <Button Content="Decode" Click="OnDecodeBtnClick"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <Button Content="Select Result Folder" Click="OnSelectFolderClick"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </UniformGrid>
-            </TabItem>
-        </TabControl>-->
     </DockPanel>
 </Window>
