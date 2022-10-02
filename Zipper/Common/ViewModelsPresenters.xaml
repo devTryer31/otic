@@ -2,6 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:vm="clr-namespace:Zipper.ViewModels"
                     xmlns:common="clr-namespace:Zipper.Common"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
                     xmlns:c="clr-namespace:Zipper.Common.Converters">
 
     <DataTemplate DataType="{x:Type vm:CompresserViewModel}">
@@ -31,15 +32,15 @@
                             HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Left" Text="Установлено: "/>
-                        <TextBlock Text="{Binding FaacFileName}"
-                                ToolTip="{Binding FaacFilePath}"/>
+                        <TextBlock Text="{Binding FaacFileName, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTip="{Binding FaacFilePath, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"/>
                     </DockPanel>
                 </StackPanel>
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Bottom">
                         <TextBlock DockPanel.Dock="Left" Text="Утсановлено: "/>
-                        <TextBlock Text="{Binding DefaultEncodedFolder}"
-                            ToolTip="{Binding DefaultEncodedFolderPath}"/>
+                        <TextBlock Text="{Binding DefaultEncodedFolderName, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"
+                            ToolTip="{Binding DefaultEncodedFolderPath, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"/>
                     </DockPanel>
 
                     <Border BorderBrush="LightGray" BorderThickness="1">

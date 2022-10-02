@@ -17,52 +17,51 @@ namespace Zipper.ViewModels
 
         #region NotyProps
 
-        private string? _faacFileName = null;
-
-        public string FaacFileName
+        private string? GetName(string? path)
         {
-            get => _faacFileName ?? "Не задано";
-            set => Set(ref _faacFileName, value);
+            string? name = path?.Substring(path.LastIndexOf(Path.DirectorySeparatorChar));
+            return string.IsNullOrWhiteSpace(name) ? null : name;
         }
+        public string? FaacFileName => GetName(FaacFilePath);
 
-        private string? _defaultFilesFolder = null;
+        public string? DefaultFilesFolderName => GetName(DefaultFilesFolderPath);
 
-        public string DefaultFilesFolder
-        {
-            get => _defaultFilesFolder ?? "Не задано";
-            set => Set(ref _defaultFilesFolder, value);
-        }
-
-        private string? _defaultEncodedFolder = null;
-
-        public string DefaultEncodedFolder
-        {
-            get => _defaultEncodedFolder ?? "Не задано";
-            set => Set(ref _defaultEncodedFolder, value);
-        }
+        public string? DefaultEncodedFolderName => GetName(DefaultEncodedFolderPath);
 
         private string? _faacFilePath = null;
 
-        public string FaacFilePath
+        public string? FaacFilePath
         {
-            get => _faacFilePath ?? "Не задано";
-            set => Set(ref _faacFilePath, value);
+            get => _faacFilePath;
+            set
+            {
+                Set(ref _faacFilePath, value);
+                OnPropertyChaged(nameof(FaacFileName));
+            }
         }
 
         private string? _defaultFilesFolderPath = null;
 
-        public string DefaultFilesFolderPath
+        public string? DefaultFilesFolderPath
         {
-            get => _defaultFilesFolderPath ?? "Не задано";
-            set => Set(ref _defaultFilesFolderPath, value);
+            get => _defaultFilesFolderPath;
+            set
+            {
+                Set(ref _defaultFilesFolderPath, value);
+                OnPropertyChaged(nameof(DefaultEncodedFolderName));
+            }
         }
 
         private string? _defaultEncodedFolderPath = null;
 
         public string? DefaultEncodedFolderPath
         {
-            get => _defaultEncodedFolderPath ?? "Не задано";
-            set => Set(ref _defaultEncodedFolderPath, value);
+            get => _defaultEncodedFolderPath;
+            set
+            {
+                Set(ref _defaultEncodedFolderPath, value);
+                OnPropertyChaged(nameof(DefaultEncodedFolderName));
+            }
         }
 
         private bool _isAlgoApplying = false;
@@ -83,7 +82,7 @@ namespace Zipper.ViewModels
         private async void StartDecoding(object obj)
         {
             bool? faacSelectRes = true;
-            if (string.IsNullOrWhiteSpace(_faacFilePath))
+            if (string.IsNullOrWhiteSpace(FaacFilePath))
             {
                 OpenFileDialog ofd = new()
                 {
@@ -91,13 +90,13 @@ namespace Zipper.ViewModels
                     Multiselect = false
                 };
                 faacSelectRes = ofd.ShowDialog();
-                FaacFileName = ofd.FileName;
+                FaacFilePath = ofd.FileName;
             }
 
             if (faacSelectRes is true)
             {
                 bool folderSelectionRes = false;
-                if (string.IsNullOrWhiteSpace(_defaultEncodedFolderPath))
+                if (string.IsNullOrWhiteSpace(DefaultEncodedFolderPath))
                 {
                     using var fbd = new System.Windows.Forms.FolderBrowserDialog();
                     if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -112,7 +111,7 @@ namespace Zipper.ViewModels
                     }
                 }
 
-                if (string.IsNullOrEmpty(_defaultEncodedFolderPath) && folderSelectionRes)
+                if (string.IsNullOrEmpty(DefaultEncodedFolderPath) && folderSelectionRes)
                 {
                     MessageBox.Show("Folder not selected", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
@@ -121,10 +120,10 @@ namespace Zipper.ViewModels
                 {
                     IsAlgoApplying = true;
                     await Task.Run(() =>
-                        Compresser.Decode(_faacFilePath!, _defaultEncodedFolderPath!)
+                        Compresser.Decode(FaacFilePath, DefaultEncodedFolderPath!)
                     );
                     IsAlgoApplying = false;
-                    MessageBox.Show($"{_faacFilePath}\ndecoded in\n{_defaultEncodedFolderPath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"{FaacFilePath}\ndecoded in\n{DefaultEncodedFolderPath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -152,26 +151,26 @@ namespace Zipper.ViewModels
                 else
                     filesPaths.Add(droppedPaths[i]);
 
-            if (string.IsNullOrEmpty(_faacFilePath))
+            if (string.IsNullOrEmpty(FaacFilePath))
             {
                 SaveFileDialog saveDialog = new();
                 if (saveDialog.ShowDialog() is true)
                 {
                     FaacFilePath = saveDialog.FileName;
-                    if (!_faacFilePath!.EndsWith(".faac"))
+                    if (!FaacFilePath.EndsWith(".faac"))
                         FaacFilePath += ".faac";
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(_faacFilePath))
+            if (!string.IsNullOrWhiteSpace(FaacFilePath))
             {
                 IsAlgoApplying = true;
                 await Task.Run(() =>
-                    Compresser.Encode(_faacFilePath, filesPaths, foldersPaths)
+                    Compresser.Encode(FaacFilePath, filesPaths, foldersPaths)
                 );
 
                 IsAlgoApplying = false;
-                MessageBox.Show($"Encoded in {_faacFilePath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"Encoded in {FaacFilePath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
