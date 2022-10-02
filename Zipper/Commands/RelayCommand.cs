@@ -8,9 +8,9 @@ namespace Zipper.Commands
 
         private readonly Action<object> _Execute;
 
-        public LambdaCommand(Action<object> execute, Func<object, bool> canExecute)
+        public LambdaCommand(Action<object> execute, Func<object, bool>? canExecute = null)
         {
-            _CanExecute = canExecute;
+            _CanExecute = canExecute ?? new Func<object, bool>(p => true);
             _Execute = execute ?? throw new ArgumentNullException(nameof(execute));
         }
 

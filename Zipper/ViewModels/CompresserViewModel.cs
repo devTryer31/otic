@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Zipper.Commands;
@@ -11,6 +12,9 @@ namespace Zipper.ViewModels
 {
     public class CompresserViewModel : ViewModelBase
     {
+        //private Task? _currentProcess;
+        //private readonly CancellationToken _cancellationToken;
+
         #region NotyProps
 
         private string? _faacFileName = null;
@@ -55,75 +59,85 @@ namespace Zipper.ViewModels
 
         private string? _defaultEncodedFolderPath = null;
 
-        public string DefaultEncodedFolderPath
+        public string? DefaultEncodedFolderPath
         {
             get => _defaultEncodedFolderPath ?? "Не задано";
             set => Set(ref _defaultEncodedFolderPath, value);
         }
 
+        private bool _isAlgoApplying = false;
+
+        public bool IsAlgoApplying
+        {
+            get => _isAlgoApplying;
+            set => Set(ref _isAlgoApplying, value);
+        }
         #endregion NotyProps
 
-        private ICommand? _decodeCommand = null;
+        #region Commands
+        private ICommand? _decodeCommand;
 
         public ICommand DecodeCommand
+            => _decodeCommand ??= new LambdaCommand(StartDecoding);
+
+        private async void StartDecoding(object obj)
         {
-            get
+            bool? faacSelectRes = true;
+            if (string.IsNullOrWhiteSpace(_faacFilePath))
             {
-                if (_decodeCommand is not null)
-                    return _decodeCommand;
+                OpenFileDialog ofd = new()
+                {
+                    Filter = "faac files(*.faac)|*.faac",
+                    Multiselect = false
+                };
+                faacSelectRes = ofd.ShowDialog();
+                FaacFileName = ofd.FileName;
+            }
 
-                _decodeCommand = new LambdaCommand(
-                    p =>
+            if (faacSelectRes is true)
+            {
+                bool folderSelectionRes = false;
+                if (string.IsNullOrWhiteSpace(_defaultEncodedFolderPath))
+                {
+                    using var fbd = new System.Windows.Forms.FolderBrowserDialog();
+                    if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                     {
-                        bool? faacSelectRes = true;
-                        if (string.IsNullOrWhiteSpace(_faacFilePath))
-                        {
-                            OpenFileDialog ofd = new()
-                            {
-                                Filter = "faac files(*.faac)|*.faac",
-                                Multiselect = false
-                            };
-                            faacSelectRes = ofd.ShowDialog();
-                            _faacFilePath = ofd.FileName;
-                        }
+                        DefaultEncodedFolderPath = fbd.SelectedPath;
+                        folderSelectionRes = true;
+                    }
+                    else
+                    {
+                        DefaultEncodedFolderPath = null;
+                        folderSelectionRes = false;
+                    }
+                }
 
-                        if (faacSelectRes is true)
-                        {
-                            if (string.IsNullOrWhiteSpace(_defaultEncodedFolderPath))
-                            {
-                                using var fbd = new System.Windows.Forms.FolderBrowserDialog();
-                                if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                                    _defaultEncodedFolderPath = fbd.SelectedPath;
-                                else
-                                    _defaultEncodedFolderPath = null;
-                            }
-
-                            if (string.IsNullOrEmpty(_defaultEncodedFolderPath))
-                            {
-                                MessageBox.Show("Folder not selected", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return;
-                            }
-                            try
-                            {
-                                Compresser.Decode(_faacFilePath, _defaultEncodedFolderPath);
-                                MessageBox.Show("Decoded", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show(ex.Message, "Decoding error", MessageBoxButton.OK, MessageBoxImage.Error);
-                            }
-                        }
-                    },
-                    p => true);
-                return _decodeCommand;
+                if (string.IsNullOrEmpty(_defaultEncodedFolderPath) && folderSelectionRes)
+                {
+                    MessageBox.Show("Folder not selected", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                try
+                {
+                    IsAlgoApplying = true;
+                    await Task.Run(() =>
+                        Compresser.Decode(_faacFilePath!, _defaultEncodedFolderPath!)
+                    );
+                    IsAlgoApplying = false;
+                    MessageBox.Show($"{_faacFilePath}\ndecoded in\n{_defaultEncodedFolderPath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Decoding error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
         private ICommand? _previewDropCommand;
         public ICommand PreviewDropCommand
-            => _previewDropCommand ??= new LambdaCommand(HandlePreviewDrop, p => true);
+            => _previewDropCommand ??= new LambdaCommand(HandlePreviewDrop);
 
-        private void HandlePreviewDrop(object inObject)
+        private async void HandlePreviewDrop(object inObject)
         {
             var droppedPaths = (string[])((IDataObject)inObject).GetData(DataFormats.FileDrop);
             var isDirectory = droppedPaths
@@ -138,17 +152,41 @@ namespace Zipper.ViewModels
                 else
                     filesPaths.Add(droppedPaths[i]);
 
-            bool? dialogRes = true;
             if (string.IsNullOrEmpty(_faacFilePath))
             {
                 SaveFileDialog saveDialog = new();
-                dialogRes = saveDialog.ShowDialog();
-                _faacFilePath = saveDialog.FileName;
+                if (saveDialog.ShowDialog() is true)
+                {
+                    FaacFilePath = saveDialog.FileName;
+                    if (!_faacFilePath!.EndsWith(".faac"))
+                        FaacFilePath += ".faac";
+                }
             }
 
-            if (dialogRes is true)
-                Compresser.Encode(_faacFilePath, filesPaths, foldersPaths);
+            if (!string.IsNullOrWhiteSpace(_faacFilePath))
+            {
+                IsAlgoApplying = true;
+                await Task.Run(() =>
+                    Compresser.Encode(_faacFilePath, filesPaths, foldersPaths)
+                );
+
+                IsAlgoApplying = false;
+                MessageBox.Show($"Encoded in {_faacFilePath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
+
+
+        //private ICommand? _stopCurrentProcessCommand;
+        //public ICommand StopCurrentProcessCommand
+        //    => _stopCurrentProcessCommand ??= new LambdaCommand(StopCurrentProcess, p => true);
+
+        //private void StopCurrentProcess(object obj)
+        //{
+        //    _cancellationToken.ThrowIfCancellationRequested();
+        //}
+
+        #endregion Commands
+
 
     }
 }

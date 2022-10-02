@@ -5,30 +5,54 @@
                     xmlns:c="clr-namespace:Zipper.Common.Converters">
 
     <DataTemplate DataType="{x:Type vm:CompresserViewModel}">
+        <DataTemplate.Resources>
+            <c:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        </DataTemplate.Resources>
         <DockPanel>
-            <StackPanel DockPanel.Dock="Bottom">
-                <Button Content="Decode" Command="{Binding DecodeCommand}"
+            <StatusBar DockPanel.Dock="Bottom" 
+                       Visibility="{Binding IsAlgoApplying, Converter={StaticResource ResourceKey=BoolToVisibility}}">
+                <StatusBarItem>
+                    <TextBlock Text="Выполнение"/>
+                </StatusBarItem>
+                <StatusBarItem HorizontalContentAlignment="Stretch">
+                    <ProgressBar Height="20"
+                                 IsIndeterminate="{Binding IsAlgoApplying}">
+                    </ProgressBar>
+                </StatusBarItem>
+                <!--<StatusBarItem>
+                    <Button Background="White" Command="">
+                        <StaticResource ResourceKey="StopIcon"/>
+                    </Button>
+                </StatusBarItem>-->
+            </StatusBar>
+            <DockPanel Margin="2">
+                <StackPanel DockPanel.Dock="Bottom">
+                    <Button Content="Decode" Command="{Binding DecodeCommand}"
                             HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Left" Text="Установлено: "/>
-                    <TextBlock Text="{Binding FaacFileName}"
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="Установлено: "/>
+                        <TextBlock Text="{Binding FaacFileName}"
                                 ToolTip="{Binding FaacFilePath}"/>
-                </DockPanel>
-            </StackPanel>
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Bottom">
-                    <TextBlock DockPanel.Dock="Left" Text="Утсановлено: "/>
-                    <TextBlock Text="{Binding DefaultEncodedFolder}"
-                            ToolTip="{Binding DefaultFilesFolderPath}"/>
-                </DockPanel>
+                    </DockPanel>
+                </StackPanel>
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Bottom">
+                        <TextBlock DockPanel.Dock="Left" Text="Утсановлено: "/>
+                        <TextBlock Text="{Binding DefaultEncodedFolder}"
+                            ToolTip="{Binding DefaultEncodedFolderPath}"/>
+                    </DockPanel>
 
-                <TextBlock Text="Drag and drop files/folders here"
+                    <Border BorderBrush="LightGray" BorderThickness="1">
+                        <TextBlock Text="Drag and drop files/folders here"
                            VerticalAlignment="Stretch"
                            HorizontalAlignment="Stretch"
                            TextAlignment="Center"
                            AllowDrop="True"
                            common:DropBehavior.PreviewDropCommand="{Binding PreviewDropCommand}"     
-                           />
+                        />
+
+                    </Border>
+                </DockPanel>
             </DockPanel>
         </DockPanel>
     </DataTemplate>
