@@ -1,0 +1,127 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:Zipper.ViewModels"
+                    xmlns:common="clr-namespace:Zipper.Common"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                    xmlns:c="clr-namespace:Zipper.Common.Converters">
+
+    <DataTemplate DataType="{x:Type vm:CompresserViewModel}">
+        <DockPanel>
+            <StatusBar DockPanel.Dock="Bottom" 
+                       Visibility="{Binding IsAlgoApplying, Converter={StaticResource ResourceKey=BoolToVisibility}}">
+                <StatusBarItem>
+                    <TextBlock Text="Выполнение"/>
+                </StatusBarItem>
+                <StatusBarItem HorizontalContentAlignment="Stretch">
+                    <ProgressBar Height="20"
+                                 IsIndeterminate="{Binding IsAlgoApplying}">
+                    </ProgressBar>
+                </StatusBarItem>
+                <!--<StatusBarItem>
+                    <Button Background="White" Command="">
+                        <StaticResource ResourceKey="StopIcon"/>
+                    </Button>
+                </StatusBarItem>-->
+            </StatusBar>
+            <DockPanel Margin="2">
+                <StackPanel DockPanel.Dock="Bottom">
+                    <Button Content="Decode" Command="{Binding DecodeCommand}"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                            Visibility="{Binding AllSettingsPreseted, Converter={StaticResource BoolToVisibility}, ConverterParameter=false, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Content="Encode and Decode" Command="{Binding CodeAndDecodeCommand}"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                            Visibility="{Binding AllSettingsPreseted, Converter={StaticResource BoolToVisibility}, UpdateSourceTrigger=PropertyChanged}"/>
+                    <DockPanel Visibility="{Binding MainWindowViewModel.IsDevModEnabled, UpdateSourceTrigger=PropertyChanged
+                                ,Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock DockPanel.Dock="Left" Text="Архив: "/>
+                        <TextBlock Text="{Binding FaacFileName, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTip="{Binding DevSettings.DefaultFaacFilePath, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"/>
+                    </DockPanel>
+                </StackPanel>
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Bottom"
+                               Visibility="{Binding MainWindowViewModel.IsDevModEnabled, UpdateSourceTrigger=PropertyChanged
+                                ,Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock DockPanel.Dock="Left" Text="Закодированные данные: "/>
+                        <TextBlock Text="{Binding DefaultEncodedFolderName, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"
+                            ToolTip="{Binding DevSettings.DefaultFolderToDecodePath, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"/>
+                    </DockPanel>
+
+                    <Border BorderBrush="LightGray" BorderThickness="1">
+                        <TextBlock Text="Drag and drop files/folders here"
+                           VerticalAlignment="Stretch"
+                           HorizontalAlignment="Stretch"
+                           TextAlignment="Center"
+                           AllowDrop="True"
+                           common:DropBehavior.PreviewDropCommand="{Binding PreviewDropCommand}"     
+                        />
+
+                    </Border>
+                </DockPanel>
+            </DockPanel>
+        </DockPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+        <GroupBox Header="Выбор алгоритмов">
+            <StackPanel>
+                <TextBlock Text="Сжатие без контекста"/>
+                <DockPanel>
+                    <ToggleButton   DockPanel.Dock="Right" Width="22"
+                                    Background="White" BorderThickness="0" IsChecked="{Binding IsEditAlgoWitoutContext}">
+                        <StaticResource ResourceKey="EditAlgorithmIcon"/>
+                    </ToggleButton>
+                    <ComboBox ItemsSource="{Binding EncodingTypes}"
+                      SelectedItem="{Binding SelectedEncodingType}">
+                    </ComboBox>
+                </DockPanel>
+                <ContentControl Content="{Binding AlgoWitoutContextViewModel, UpdateSourceTrigger=PropertyChanged}"
+                                Visibility="{Binding IsEditAlgoWitoutContext, Converter={StaticResource ResourceKey=BoolToVisibility}}"/>
+
+                <TextBlock Text="Сжатие с контектсом"/>
+                <DockPanel>
+                    <ToggleButton   DockPanel.Dock="Right" Width="22"
+                                    Background="White" BorderThickness="0" IsChecked="{Binding IsEditAlgoContexted}">
+                        <StaticResource ResourceKey="EditAlgorithmIcon"/>
+                    </ToggleButton>
+                    <ComboBox ItemsSource="{Binding EncodingTypesWithContext}"
+                      SelectedItem="{Binding SelectedEncodingTypeWithContext}">
+                    </ComboBox>
+                </DockPanel>
+                <ContentControl Content="{Binding AlgoContextedViewModel, UpdateSourceTrigger=PropertyChanged}"
+                                Visibility="{Binding IsEditAlgoContexted, Converter={StaticResource ResourceKey=BoolToVisibility}}"/>
+
+                <TextBlock Text="Зашита от помех"/>
+                <DockPanel>
+                    <ToggleButton   DockPanel.Dock="Right" Width="22"
+                                    Background="White" BorderThickness="0" IsChecked="{Binding IsEditAlgoInterferenceProt}">
+                        <StaticResource ResourceKey="EditAlgorithmIcon"/>
+                    </ToggleButton>
+                    <ComboBox ItemsSource="{Binding InterferenceProtectionTypres}"
+                      SelectedItem="{Binding SelectedinterferenceProtection}">
+                    </ComboBox>
+                </DockPanel>
+                <ContentControl Content="{Binding AlgoInterferenceProtViewModel , UpdateSourceTrigger=PropertyChanged}"
+                                Visibility="{Binding IsEditAlgoInterferenceProt, Converter={StaticResource ResourceKey=BoolToVisibility}}"/>
+
+            </StackPanel>
+        </GroupBox>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:DevSettingsViewModel}">
+        <StackPanel>
+            <DockPanel>
+                <TextBlock Text="Путь файла для кодирования"/>
+                <TextBox DockPanel.Dock="Left" Text="{Binding DefaultFaacFilePath}"/>
+            </DockPanel>
+            <DockPanel>
+                <TextBlock Text="Путь папки для кодирования"/>
+                <TextBox DockPanel.Dock="Left" Text="{Binding DefaultFolderToEncodePath}"/>
+            </DockPanel>
+            <DockPanel>
+                <TextBlock Text="Путь папки для декодирования"/>
+                <TextBox DockPanel.Dock="Left" Text="{Binding DefaultFolderToDecodePath}"/>
+            </DockPanel>
+        </StackPanel>
+    </DataTemplate>
+</ResourceDictionary>

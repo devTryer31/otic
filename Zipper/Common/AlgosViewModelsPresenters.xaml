@@ -1,0 +1,16 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:Zipper.ViewModels.Algos"
+                    >
+    <DataTemplate DataType="{x:Type vm:NonAlgoViewModel}">
+        <TextBlock Text="Нет настроек для неустановленного алгоритма"/>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:ShenonFanoAlgoViewModel}">
+        <DockPanel>
+            <CheckBox IsChecked="{Binding ApplyAlgoToEachFile}"
+                      DockPanel.Dock="Left"/>
+            <TextBlock Text="Применять алгоритм к каждому файлу" TextWrapping="Wrap"/>
+        </DockPanel>
+    </DataTemplate>
+</ResourceDictionary>

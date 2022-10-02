@@ -3,26 +3,35 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Zipper"
+        xmlns:vm="clr-namespace:Zipper.ViewModels"
         mc:Ignorable="d"
-        Title="Zipper" Height="150" Width="250" WindowStartupLocation="Manual">
-    <TabControl>
-        <TabItem Header="Encode">
-            <DockPanel>
-                <TextBlock Text="Drag and drop files/folders here"
-                           VerticalAlignment="Stretch"
-                           HorizontalAlignment="Stretch"
-                           TextAlignment="Center"
-                           AllowDrop="True" Drop="OnFilesDropped"/>
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Decode">
-            <UniformGrid Columns="2" Rows="1">
-                <Button Content="Decode" Click="OnDecodeBtnClick"
-                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <Button Content="Select Result Folder" Click="OnSelectFolderClick"
-                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </UniformGrid>
-        </TabItem>
-    </TabControl>
+        Title="Zipper" Height="250" Width="350" WindowStartupLocation="Manual">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Common/ViewModelsPresenters.xaml"/>
+                <ResourceDictionary Source="Common/AlgosViewModelsPresenters.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.DataContext>
+        <vm:MainWindowViewModel/>
+    </Window.DataContext>
+    
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Width="26">
+            <ToggleButton Background="White" BorderThickness="0" IsChecked="{Binding IsSettingsOn}">
+                <StaticResource ResourceKey="SettingsIcon"/>
+            </ToggleButton>
+            <ToggleButton Background="White" BorderThickness="0" IsChecked="{Binding IsDevModEnabled}">
+                <StaticResource ResourceKey="DevIcon"/>
+            </ToggleButton>
+            <ToggleButton Background="White" BorderThickness="0" IsChecked="{Binding IsDevSetFolderEnabled}"
+                          Visibility="{Binding IsDevModEnabled, Converter={StaticResource ResourceKey=BoolToVisibility}}">
+                <StaticResource ResourceKey="FolderSettingsIcon"/>
+            </ToggleButton>
+        </StackPanel>
+        <ContentControl Content="{Binding CurrentViewModel, UpdateSourceTrigger=PropertyChanged}"/>
+    </DockPanel>
 </Window>
