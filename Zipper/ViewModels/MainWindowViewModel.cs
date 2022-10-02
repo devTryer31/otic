@@ -7,7 +7,7 @@
 
 		public MainWindowViewModel()
 		{
-            _compresserViewModel = new CompresserViewModel();
+            _compresserViewModel = new CompresserViewModel(this);
 			_settingsViewModel = new SettingsViewModel();
 			_currentViewModel = _compresserViewModel;
         }
@@ -34,6 +34,23 @@
 					CurrentViewModel = _compresserViewModel;
 			}
 		}
+
+		private bool _isDevModEnabled;
+
+		public bool IsDevModEnabled
+		{
+			get => _isDevModEnabled;
+			set => Set(ref _isDevModEnabled, value);
+		}
+
+		private bool _isDevSetFolderEnabled;
+
+		public bool IsDevSetFolderEnabled
+        {
+			get => _isDevSetFolderEnabled;
+			set => Set(ref _isDevSetFolderEnabled, value);
+		}
+
 
 	}
 }

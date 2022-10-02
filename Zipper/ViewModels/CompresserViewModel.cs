@@ -15,9 +15,15 @@ namespace Zipper.ViewModels
         //private Task? _currentProcess;
         //private readonly CancellationToken _cancellationToken;
 
+        public CompresserViewModel(MainWindowViewModel mainWindowViewModel)
+        {
+            MainWindowViewModel = mainWindowViewModel;
+        }
+        public MainWindowViewModel MainWindowViewModel { get; }
+
         #region NotyProps
 
-        private string? GetName(string? path)
+        private static string? GetName(string? path)
         {
             string? name = path?.Substring(path.LastIndexOf(Path.DirectorySeparatorChar));
             return string.IsNullOrWhiteSpace(name) ? null : name;
@@ -185,7 +191,5 @@ namespace Zipper.ViewModels
         //}
 
         #endregion Commands
-
-
     }
 }
