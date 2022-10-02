@@ -46,7 +46,7 @@ namespace Zipper.ViewModels
 
         public void Dispose()
         {
-            using var sw = new FileStream(_settingsFilePath, FileMode.OpenOrCreate);
+            using var sw = new FileStream(_settingsFilePath, FileMode.Create);
             _serializer.Serialize(sw, Settings);
         }
     }

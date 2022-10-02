@@ -43,7 +43,7 @@ namespace Zipper.ViewModels
 
         private static string? GetName(string? path)
         {
-            if (path is null)
+            if (string.IsNullOrWhiteSpace(path))
                 return null;
 
             var attr = File.GetAttributes(path);
@@ -152,9 +152,9 @@ namespace Zipper.ViewModels
             => _previewDropCommand ??= new LambdaCommand(HandlePreviewDrop);
 
         public bool AllSettingsPreseted =>
-            !(_devSettings.DefaultFolderToDecodePath is null ||
-            _devSettings.DefaultFolderToEncodePath is null ||
-            _devSettings.DefaultFaacFilePath is null)
+            !(string.IsNullOrWhiteSpace(_devSettings.DefaultFolderToDecodePath) ||
+            string.IsNullOrWhiteSpace(_devSettings.DefaultFolderToEncodePath)||
+            string.IsNullOrWhiteSpace(_devSettings.DefaultFaacFilePath))
             && MainWindowViewModel.IsDevModEnabled;
 
         private async void HandlePreviewDrop(object inObject)

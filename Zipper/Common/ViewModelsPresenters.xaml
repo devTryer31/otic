@@ -33,18 +33,18 @@
                             Visibility="{Binding AllSettingsPreseted, Converter={StaticResource BoolToVisibility}, UpdateSourceTrigger=PropertyChanged}"/>
                     <DockPanel Visibility="{Binding MainWindowViewModel.IsDevModEnabled, UpdateSourceTrigger=PropertyChanged
                                 ,Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock DockPanel.Dock="Left" Text="Установлено: "/>
+                        <TextBlock DockPanel.Dock="Left" Text="Архив: "/>
                         <TextBlock Text="{Binding FaacFileName, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"
-                                ToolTip="{Binding FaacFilePath, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"/>
+                                ToolTip="{Binding DevSettings.DefaultFaacFilePath, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"/>
                     </DockPanel>
                 </StackPanel>
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Bottom"
                                Visibility="{Binding MainWindowViewModel.IsDevModEnabled, UpdateSourceTrigger=PropertyChanged
                                 ,Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock DockPanel.Dock="Left" Text="Утсановлено: "/>
+                        <TextBlock DockPanel.Dock="Left" Text="Закодированные данные: "/>
                         <TextBlock Text="{Binding DefaultEncodedFolderName, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"
-                            ToolTip="{Binding DefaultEncodedFolderPath, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"/>
+                            ToolTip="{Binding DevSettings.DefaultFolderToDecodePath, TargetNullValue=Не задано, UpdateSourceTrigger=PropertyChanged}"/>
                     </DockPanel>
 
                     <Border BorderBrush="LightGray" BorderThickness="1">
