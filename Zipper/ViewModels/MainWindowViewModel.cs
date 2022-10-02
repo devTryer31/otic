@@ -1,11 +1,13 @@
-﻿namespace Zipper.ViewModels
+﻿using Zipper.Models;
+
+namespace Zipper.ViewModels
 {
 	public class MainWindowViewModel : ViewModelBase
 	{
 		private readonly CompresserViewModel _compresserViewModel;
 		private readonly SettingsViewModel _settingsViewModel;
 
-		public MainWindowViewModel()
+        public MainWindowViewModel()
 		{
             _compresserViewModel = new CompresserViewModel(this);
 			_settingsViewModel = new SettingsViewModel();
@@ -40,15 +42,41 @@
 		public bool IsDevModEnabled
 		{
 			get => _isDevModEnabled;
-			set => Set(ref _isDevModEnabled, value);
+			set
+			{
+				Set(ref _isDevModEnabled, value);
+				if(IsDevSetFolderEnabled && !_isDevModEnabled)
+					IsDevSetFolderEnabled = false;
+			}
 		}
 
 		private bool _isDevSetFolderEnabled;
 
 		public bool IsDevSetFolderEnabled
-        {
+		{
 			get => _isDevSetFolderEnabled;
-			set => Set(ref _isDevSetFolderEnabled, value);
+			set
+			{
+				Set(ref _isDevSetFolderEnabled, value);
+				if (_isDevSetFolderEnabled)
+				{
+					CurrentViewModel = new DevSettingsViewModel();
+				}
+				else
+				{
+					var settingsViewModel = CurrentViewModel as DevSettingsViewModel;
+                    settingsViewModel!.Dispose();
+
+					var settings = settingsViewModel.Settings;
+					_compresserViewModel.DevSettings = settings;
+
+					//_compresserViewModel.DevSettings.DefaultFolderToEncodePath = settings.DefaultFolderToEncodePath;
+					//_compresserViewModel.DevSettings.DefaultFaacFilePath = settings.DefaultFaacFilePath;
+     //               _compresserViewModel.DevSettings.DefaultFolderToDecodePath = settings.DefaultFolderToDecodePath;
+
+					CurrentViewModel = _compresserViewModel;
+				}
+			}
 		}
 
 

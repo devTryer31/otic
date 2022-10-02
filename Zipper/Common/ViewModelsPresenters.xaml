@@ -103,4 +103,21 @@
             </StackPanel>
         </GroupBox>
     </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:DevSettingsViewModel}">
+        <StackPanel>
+            <DockPanel>
+                <TextBlock Text="Путь файла для кодирования"/>
+                <TextBox DockPanel.Dock="Left" Text="{Binding DefaultFaacFilePath}"/>
+            </DockPanel>
+            <DockPanel>
+                <TextBlock Text="Путь папки для кодирования"/>
+                <TextBox DockPanel.Dock="Left" Text="{Binding DefaultFolderToEncodePath}"/>
+            </DockPanel>
+            <DockPanel>
+                <TextBlock Text="Путь папки для декодирования"/>
+                <TextBox DockPanel.Dock="Left" Text="{Binding DefaultFolderToDecodePath}"/>
+            </DockPanel>
+        </StackPanel>
+    </DataTemplate>
 </ResourceDictionary>

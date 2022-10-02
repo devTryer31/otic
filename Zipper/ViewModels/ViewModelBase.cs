@@ -19,7 +19,5 @@ namespace Zipper.ViewModels
             OnPropertyChaged(propName);
             return true;
         }
-
-
     }
 }

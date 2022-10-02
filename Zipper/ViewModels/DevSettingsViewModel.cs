@@ -1,29 +1,53 @@
-﻿namespace Zipper.ViewModels
+﻿using System;
+using System.IO;
+using System.Xml.Serialization;
+using Zipper.Models;
+
+namespace Zipper.ViewModels
 {
-    public class DevSettingsViewModel : ViewModelBase
+    public class DevSettingsViewModel : ViewModelBase, IDisposable
     {
-        private string? _defaultFolderToEncodePath;
+        private readonly DevSettings _settings;
+        private static readonly XmlSerializer _serializer = new(typeof(DevSettings));
+        private readonly string _settingsFilePath;
+
+        public DevSettingsViewModel()
+        {
+            _settingsFilePath = Path.Combine(new FileInfo(Environment.ProcessPath!).Directory!.FullName, DevSettings.FileName);
+
+            if (File.Exists(_settingsFilePath))
+            {
+                using var sr = new FileStream(_settingsFilePath, FileMode.Open);
+                _settings = (_serializer.Deserialize(sr) as DevSettings)!;
+            }
+
+            _settings ??= new DevSettings();
+        }
 
         public string? DefaultFolderToEncodePath
         {
-            get => _defaultFolderToEncodePath;
-            set => Set(ref _defaultFolderToEncodePath, value);
+            get => Settings.DefaultFolderToEncodePath;
+            set => Settings.DefaultFolderToEncodePath = value;
         }
-
-        private string? _defaultFolderToDecodePath;
 
         public string? DefaultFolderToDecodePath
         {
-            get => _defaultFolderToDecodePath;
-            set => Set(ref _defaultFolderToDecodePath, value);
+            get => Settings.DefaultFolderToDecodePath;
+            set => Settings.DefaultFolderToDecodePath = value;
         }
-
-        private string? _defaultFaacFilePath;
 
         public string? DefaultFaacFilePath
         {
-            get => _defaultFaacFilePath;
-            set => Set(ref _defaultFaacFilePath, value);
+            get => Settings.DefaultFaacFilePath;
+            set => Settings.DefaultFaacFilePath = value;
+        }
+
+        public DevSettings Settings => _settings;
+
+        public void Dispose()
+        {
+            using var sw = new FileStream(_settingsFilePath, FileMode.OpenOrCreate);
+            _serializer.Serialize(sw, Settings);
         }
     }
 }
