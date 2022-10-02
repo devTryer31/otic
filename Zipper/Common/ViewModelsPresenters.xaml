@@ -26,7 +26,11 @@
             <DockPanel Margin="2">
                 <StackPanel DockPanel.Dock="Bottom">
                     <Button Content="Decode" Command="{Binding DecodeCommand}"
-                            HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                            Visibility="{Binding AllSettingsPreseted, Converter={StaticResource BoolToVisibility}, ConverterParameter=false, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Content="Encode and Decode" Command="{Binding CodeAndDecodeCommand}"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                            Visibility="{Binding AllSettingsPreseted, Converter={StaticResource BoolToVisibility}, UpdateSourceTrigger=PropertyChanged}"/>
                     <DockPanel Visibility="{Binding MainWindowViewModel.IsDevModEnabled, UpdateSourceTrigger=PropertyChanged
                                 ,Converter={StaticResource BoolToVisibility}}">
                         <TextBlock DockPanel.Dock="Left" Text="Установлено: "/>

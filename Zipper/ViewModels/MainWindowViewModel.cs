@@ -7,16 +7,16 @@ namespace Zipper.ViewModels
 		private readonly CompresserViewModel _compresserViewModel;
 		private readonly SettingsViewModel _settingsViewModel;
 
-        public MainWindowViewModel()
+		public MainWindowViewModel()
 		{
-            _compresserViewModel = new CompresserViewModel(this);
+			_compresserViewModel = new CompresserViewModel(this);
 			_settingsViewModel = new SettingsViewModel();
 			_currentViewModel = _compresserViewModel;
-        }
+		}
 
 		private ViewModelBase _currentViewModel;
 
-        public ViewModelBase CurrentViewModel
+		public ViewModelBase CurrentViewModel
 		{
 			get => _currentViewModel;
 			set => Set(ref _currentViewModel, value);
@@ -30,7 +30,7 @@ namespace Zipper.ViewModels
 			set
 			{
 				Set(ref _isSettingsOn, value);
-				if(_isSettingsOn)
+				if (_isSettingsOn)
 					CurrentViewModel = _settingsViewModel;
 				else
 					CurrentViewModel = _compresserViewModel;
@@ -45,7 +45,8 @@ namespace Zipper.ViewModels
 			set
 			{
 				Set(ref _isDevModEnabled, value);
-				if(IsDevSetFolderEnabled && !_isDevModEnabled)
+                _compresserViewModel.OnPropertyChaged(nameof(_compresserViewModel.AllSettingsPreseted));
+				if (IsDevSetFolderEnabled && !_isDevModEnabled)
 					IsDevSetFolderEnabled = false;
 			}
 		}
@@ -65,20 +66,14 @@ namespace Zipper.ViewModels
 				else
 				{
 					var settingsViewModel = CurrentViewModel as DevSettingsViewModel;
-                    settingsViewModel!.Dispose();
+					settingsViewModel!.Dispose();
 
 					var settings = settingsViewModel.Settings;
 					_compresserViewModel.DevSettings = settings;
-
-					//_compresserViewModel.DevSettings.DefaultFolderToEncodePath = settings.DefaultFolderToEncodePath;
-					//_compresserViewModel.DevSettings.DefaultFaacFilePath = settings.DefaultFaacFilePath;
-     //               _compresserViewModel.DevSettings.DefaultFolderToDecodePath = settings.DefaultFolderToDecodePath;
 
 					CurrentViewModel = _compresserViewModel;
 				}
 			}
 		}
-
-
-	}
+    }
 }

@@ -35,55 +35,28 @@ namespace Zipper.ViewModels
                 OnPropertyChaged(nameof(FaacFileName));
                 OnPropertyChaged(nameof(DefaultFilesFolderName));
                 OnPropertyChaged(nameof(DefaultEncodedFolderName));
+                OnPropertyChaged(nameof(AllSettingsPreseted));
+
+                //AllSettingsPreseted 
             }
         }
 
         private static string? GetName(string? path)
         {
-            string? name = path?.Substring(path.LastIndexOf(Path.DirectorySeparatorChar));
-            return string.IsNullOrWhiteSpace(name) ? null : name;
+            if (path is null)
+                return null;
+
+            var attr = File.GetAttributes(path);
+            if (attr.HasFlag(FileAttributes.Directory))
+                return new DirectoryInfo(path).Name;
+
+            return new FileInfo(path).Name;
         }
         public string? FaacFileName => GetName(DevSettings.DefaultFaacFilePath);
 
         public string? DefaultFilesFolderName => GetName(DevSettings.DefaultFolderToEncodePath);
 
         public string? DefaultEncodedFolderName => GetName(DevSettings.DefaultFolderToDecodePath);
-
-        private string? _faacFilePath = null;
-
-        //public string? FaacFilePath
-        //{
-        //    get => _faacFilePath;
-        //    set
-        //    {
-        //        Set(ref _faacFilePath, value);
-        //        OnPropertyChaged(nameof(FaacFileName));
-        //    }
-        //}
-
-        //private string? _defaultFilesFolderPath = null;
-
-        //public string? DefaultFilesFolderPath
-        //{
-        //    get => _defaultFilesFolderPath;
-        //    set
-        //    {
-        //        Set(ref _defaultFilesFolderPath, value);
-        //        OnPropertyChaged(nameof(DefaultEncodedFolderName));
-        //    }
-        //}
-
-        //private string? _defaultEncodedFolderPath = null;
-
-        //public string? DefaultEncodedFolderPath
-        //{
-        //    get => _defaultEncodedFolderPath;
-        //    set
-        //    {
-        //        Set(ref _defaultEncodedFolderPath, value);
-        //        OnPropertyChaged(nameof(DefaultEncodedFolderName));
-        //    }
-        //}
 
         private bool _isAlgoApplying = false;
 
@@ -92,15 +65,33 @@ namespace Zipper.ViewModels
             get => _isAlgoApplying;
             set => Set(ref _isAlgoApplying, value);
         }
+
         #endregion NotyProps
 
         #region Commands
+        private ICommand? _codeAndDecodeCommand;
+
+        public ICommand CodeAndDecodeCommand
+            => _codeAndDecodeCommand ??= new LambdaCommand(StartCodeAndDecode);
+
+        private async void StartCodeAndDecode(object p)
+        {
+            var sourceFolder = DevSettings.DefaultFolderToEncodePath;
+            if(sourceFolder is null)
+                throw new ArgumentException("Не установлена папка для кодирования по умолчанию в режиме разработчика");
+
+            var dirs = Directory.EnumerateDirectories(sourceFolder).ToList();
+            var files = Directory.EnumerateFiles(sourceFolder).ToList();
+            await Encode(files, dirs);
+            Decode(p);
+        }
+
         private ICommand? _decodeCommand;
 
         public ICommand DecodeCommand
-            => _decodeCommand ??= new LambdaCommand(StartDecoding);
+            => _decodeCommand ??= new LambdaCommand(Decode);
 
-        private async void StartDecoding(object obj)
+        private async void Decode(object obj)
         {
             string? faacFilePath = MainWindowViewModel.IsDevModEnabled ? DevSettings.DefaultFaacFilePath : null;
 
@@ -160,6 +151,12 @@ namespace Zipper.ViewModels
         public ICommand PreviewDropCommand
             => _previewDropCommand ??= new LambdaCommand(HandlePreviewDrop);
 
+        public bool AllSettingsPreseted =>
+            !(_devSettings.DefaultFolderToDecodePath is null ||
+            _devSettings.DefaultFolderToEncodePath is null ||
+            _devSettings.DefaultFaacFilePath is null)
+            && MainWindowViewModel.IsDevModEnabled;
+
         private async void HandlePreviewDrop(object inObject)
         {
             var droppedPaths = (string[])((IDataObject)inObject).GetData(DataFormats.FileDrop);
@@ -175,6 +172,11 @@ namespace Zipper.ViewModels
                 else
                     filesPaths.Add(droppedPaths[i]);
 
+            await Encode(filesPaths, foldersPaths);
+        }
+
+        private async Task Encode(List<string> filesPaths, List<string> foldersPaths)
+        {
             string? faacFilePath = MainWindowViewModel.IsDevModEnabled ? DevSettings.DefaultFaacFilePath : null;
 
             if (string.IsNullOrEmpty(faacFilePath))
