@@ -5,11 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Zipper.ViewModels"
         mc:Ignorable="d"
-        Title="Zipper" Height="150" Width="250" WindowStartupLocation="Manual">
+        Title="Zipper" Height="250" Width="350" WindowStartupLocation="Manual">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Common/ViewModelsPresenters.xaml"/>
+                <ResourceDictionary Source="Common/AlgosViewModelsPresenters.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
