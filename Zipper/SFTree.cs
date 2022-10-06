@@ -85,7 +85,7 @@ namespace Zipper
 
         private static BytesCodes BuildTree(in FrequencyList bytesPart, BytesCodes? bytesCodes = null)
         {
-            if(bytesCodes is null)
+            if (bytesCodes is null)
                 bytesCodes = new();
 
             if (bytesPart.Count <= 1)
@@ -151,10 +151,24 @@ namespace Zipper
 #endif
 
             var codes = bytesCode.Values.ToList();
-            List<List<bool>> prediction = codes;
+            List<List<bool>> prediction = codes.OrderBy(arr => arr.Count).ToList();
             List<byte> decoded = new(startBytesLen);
 
-            int searchIdx = 0;
+            var revertedBytesCode = bytesCode.ToDictionary(x => x.Value, x => x.Key, new LigthComparator<List<bool>>((x, y) => x.SequenceEqual(y)
+            , x =>
+            {
+                int sum = 0;
+                for (int i = 0; i < x.Count; i++)
+                    sum += (int)Math.Pow(2, i) * (x[i] ? 1 : 0);
+                return sum;
+            }));
+
+            var minLen = prediction[0].Count();
+            int currentLen = minLen;
+
+            currentLen = minLen;
+            List<bool> currentBits = new();
+
             for (int i = 0; i < data.Length; i++)
             {
                 byte current = data[i];
@@ -164,27 +178,25 @@ namespace Zipper
                 {
                     bit = (current & 128) / 128 == 1;
                     current <<= 1;
-                    List<List<bool>> buff = new();
+                    currentBits.Add(bit);
 
-                    for (int j = 0; j < prediction.Count; j++)
-                        if (bit == prediction[j][searchIdx])
-                            buff.Add(prediction[j]);
-
-                    searchIdx++;
-
-                    prediction = buff;
-
-                    if (prediction.Count == 1)
+                    if (currentBits.Count == currentLen)
                     {
-                        decoded.Add(bytesCode.First(p => Enumerable.SequenceEqual(p.Value, prediction[0])).Key);
-                        if (decoded.Count == startBytesLen)
-                            return decoded;
-                        prediction = codes;
-                        searchIdx = 0;
+                        if (revertedBytesCode.ContainsKey(currentBits))
+                        {
+                            decoded.Add(revertedBytesCode[currentBits]);
+#if DEBUG
+                            System.Diagnostics.Debug.WriteLine(decoded.Last());
+#endif
+                            if (decoded.Count == startBytesLen)
+                                return decoded;
+                            currentBits.Clear();
+                            currentLen = minLen - 1;
+                        }
+                        currentLen++;
                     }
                 }
             }
-
             throw new ArgumentException("Невернный фромат входных байтов");
         }
     }
