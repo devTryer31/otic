@@ -2,29 +2,32 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace Zipper
 {
     using FrequencyList = List<(byte Byte, byte Count)>;
     using BytesCodes = Dictionary<byte, List<bool>>;
 
-    public class SFTree
+    public class SFTree : IDisposable
     {
 
         private Dictionary<byte, long> _bytesFrequency = new();
         private readonly BytesCodes _bytesCode;
-        private readonly byte[] _bytes;
         private readonly FrequencyList _sortedBytesFrequency;
+        private readonly Stream _dataStream;
 
-        public SFTree(byte[] bytes)
+        public SFTree(Stream dataStream)
         {
-            foreach (var b in bytes)
+            var sr = new BinaryReader(dataStream);
+            while (!sr.BaseStream.IsEndOfStream())
             {
+                byte b = sr.ReadByte();
                 if (!_bytesFrequency.ContainsKey(b))
                     _bytesFrequency.Add(b, 0L);
                 ++_bytesFrequency[b];
             }
+            dataStream.Flush();
+            dataStream.Position = 0;
 
             _sortedBytesFrequency = _bytesFrequency
                 .Select(p => (Byte: p.Key, Count: NormalizeLongLinear(p.Value)))
@@ -33,39 +36,35 @@ namespace Zipper
                 .ToList();
 
             _bytesCode = BuildTree(_sortedBytesFrequency);
+            _dataStream = dataStream;
 
 #if DEBUG
             foreach (var p in _bytesCode)
                 System.Diagnostics.Debug.WriteLine($"{p.Key} : [{string.Join("", p.Value.Select(b => b ? 1 : 0))}] len = {p.Value.Count}");
 #endif
-            _bytes = bytes;
         }
 
         private byte NormalizeLongLinear(long source)
             => (byte)(1 + (source - 1) * (byte.MaxValue - 1) / (_bytesFrequency.Values.Max() - 1));
 
-        public List<byte> GetFrequenciesInBytes()
+        public byte[] GetFrequenciesInBytes()
         {
-            List<byte> ans = new();
+            byte[] ans = new byte[byte.MaxValue + 1];
             for (int i = byte.MinValue; i <= byte.MaxValue; i++)
             {
                 byte b = (byte)i;
 
                 if (!_bytesFrequency.ContainsKey(b))
-                    ans.Add(0);
+                    ans[i] = 0;
                 else
-                {
-                    byte normalizedFreq = NormalizeLongLinear(_bytesFrequency[b]);
-                    ans.Add(normalizedFreq);
-                }
+                    ans[i] = NormalizeLongLinear(_bytesFrequency[b]);
             }
             return ans;
         }
 
-        private static BytesCodes GetTreeFromBytes(List<byte> frequencies)
+        private static BytesCodes GetTreeFromFrequenciesBytes(byte[] frequencies)
         {
-            var frequenciesArr = frequencies.ToArray();
-            using var sr = new BinaryReader(new MemoryStream(frequenciesArr));
+            using var sr = new BinaryReader(new MemoryStream(frequencies));
             FrequencyList decodedFrequencies = new(byte.MaxValue);
 
             //Читаем частотности байтов.
@@ -89,7 +88,11 @@ namespace Zipper
                 bytesCodes = new();
 
             if (bytesPart.Count <= 1)
+            {
+                if (bytesCodes.Count == 0)
+                    bytesCodes.Add(bytesPart.First().Byte, new List<bool>() { false });
                 return bytesCodes;
+            }
 
             long lSum = 0, rSum = 0;
             int l = -1, r = bytesPart.Count;
@@ -134,25 +137,35 @@ namespace Zipper
 
         public IEnumerable<byte> EncodeBytes()
         {
-            List<bool> bitsEncoded = new(_bytes.Length * 2);
-            foreach (var b in _bytes)
-                bitsEncoded.AddRange(_bytesCode[b]);
-
-            return bitsEncoded.ToBytes();
+            var sr = new BinaryReader(_dataStream);
+            Queue<bool> buffer = new(sizeof(byte) * 2);
+            while (!sr.BaseStream.IsEndOfStream())
+            {
+                var code = _bytesCode[sr.ReadByte()];
+                code.ForEach(buffer.Enqueue);
+                if (buffer.Count >= 8)
+                {
+                    yield return buffer.ToSingleByte();
+                    byte cnt = 8;
+                    while (cnt-- > 0)
+                        buffer.Dequeue();
+                }
+            }
+            _dataStream.Flush();
+            _dataStream.Position = 0;
+            yield return buffer.ToSingleByte();
         }
 
-        public static List<byte> DecodeBytes(byte[] data, int startBytesLen, List<byte> frequencies)
+        public static IEnumerable<byte> DecodeBytes(IEnumerable<byte> data, long startBytesLen, byte[] frequencies)
         {
-            var bytesCode = GetTreeFromBytes(frequencies);
+            var bytesCode = GetTreeFromFrequenciesBytes(frequencies);
 
 #if DEBUG
             foreach (var p in bytesCode)
                 System.Diagnostics.Debug.WriteLine($"{p.Key} : [{string.Join("", p.Value.Select(b => b ? 1 : 0))}] len = {p.Value.Count}");
 #endif
 
-            var codes = bytesCode.Values.ToList();
-            List<List<bool>> prediction = codes.OrderBy(arr => arr.Count).ToList();
-            List<byte> decoded = new(startBytesLen);
+            List<List<bool>> prediction = bytesCode.Values.OrderBy(arr => arr.Count).ToList();
 
             var revertedBytesCode = bytesCode.ToDictionary(x => x.Value, x => x.Key, new LigthComparator<List<bool>>((x, y) => x.SequenceEqual(y)
             , x =>
@@ -163,15 +176,15 @@ namespace Zipper
                 return sum;
             }));
 
-            var minLen = prediction[0].Count();
+            var minLen = prediction[0].Count;
             int currentLen = minLen;
 
             currentLen = minLen;
             List<bool> currentBits = new();
 
-            for (int i = 0; i < data.Length; i++)
+            foreach(byte b in data)
             {
-                byte current = data[i];
+                byte current = b;
 
                 bool bit = false;
                 for (int k = 0; k < 8; k++)
@@ -184,12 +197,10 @@ namespace Zipper
                     {
                         if (revertedBytesCode.ContainsKey(currentBits))
                         {
-                            decoded.Add(revertedBytesCode[currentBits]);
-#if DEBUG
-                            System.Diagnostics.Debug.WriteLine(decoded.Last());
-#endif
-                            if (decoded.Count == startBytesLen)
-                                return decoded;
+                            yield return revertedBytesCode[currentBits];
+                            --startBytesLen;
+                            if(startBytesLen == 0)
+                                goto GOOD_END;
                             currentBits.Clear();
                             currentLen = minLen - 1;
                         }
@@ -198,6 +209,10 @@ namespace Zipper
                 }
             }
             throw new ArgumentException("Невернный фромат входных байтов");
+            GOOD_END:;
         }
+
+        public void Dispose()
+            => _dataStream.Dispose();
     }
 }

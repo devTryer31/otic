@@ -82,21 +82,31 @@ namespace Zipper
                 sw.Write(nameBytes.Length);
                 sw.Write(nameBytes);
 
-                var fileData = File.ReadAllBytes(f.FullName);//Can broke on large files >2Gb.
-
-                var tree = new SFTree(fileData);
+                using var tree = new SFTree(File.OpenRead(f.FullName));
                 var freqBytes = tree.GetFrequenciesInBytes();
-                sw.Write(freqBytes.Count);
-                sw.Write(freqBytes.ToArray());
-
-                var codedFileData = tree.EncodeBytes().ToArray();
+                sw.Write(freqBytes.Length);
+                sw.Write(freqBytes);
 
                 sw.Write(f.Length);
-                sw.Write(codedFileData.Length);
-                sw.Write(codedFileData);
+                tmpPtr = (int)sw.BaseStream.Position;
+                sw.Write(0L);
+                long codedFileDataLen = 0;
+                System.Diagnostics.Debug.WriteLine("EncodeBytes");
+                foreach (byte b in tree.EncodeBytes())
+                {
+                    //System.Diagnostics.Debug.WriteLine(b);
+                    sw.Write(b);
+                    ++codedFileDataLen;
+                }
+                int tmpPtrLastPos = (int)sw.BaseStream.Position;
+                sw.Seek(tmpPtr, SeekOrigin.Begin);
+                sw.Write(codedFileDataLen);
+                sw.Seek(tmpPtrLastPos, SeekOrigin.Begin);
             }
+            System.Diagnostics.Debug.WriteLine(fInfo.Name + " ЗАКОДИРОВАНН");
         }
 
+        #region Folders processing
         private static List<string> GetAllFilesFromDirectories(in IEnumerable<string> foldersPaths)
         {
             List<string> ans = new();
@@ -146,6 +156,7 @@ namespace Zipper
 
             return ans;
         }
+        #endregion
 
         public static void Decode(in string filePath, in string folderPath)
         {
@@ -203,14 +214,30 @@ namespace Zipper
                 var freqsInBytes = sr.ReadBytes(freqsLen);
 
                 long fileLen = sr.ReadInt64();
-                int encodedDataLen = sr.ReadInt32();
-                var encodedData = sr.ReadBytes(encodedDataLen);
+                long encodedDataLen = sr.ReadInt64();
 
-                var decodedData = SFTree.DecodeBytes(encodedData, (int)fileLen, freqsInBytes.ToList());
+                IEnumerable<byte> GetEncodedData()
+                {
+                    System.Diagnostics.Debug.WriteLine("GetEncodedData");
+                    int toRead = 6400;
+                    while (encodedDataLen > 0)
+                    {
+                        foreach (byte b in sr!.ReadBytes((int)Math.Min(toRead, encodedDataLen)))
+                        {
+                            //System.Diagnostics.Debug.WriteLine(b);
+                            yield return b;
+                        }
+                        encodedDataLen -= toRead;
+                    }
+                }
 
                 string fileFullPath = Path.Combine(folderPath, folderInfo, fileName);
-                File.WriteAllBytes(fileFullPath, decodedData.ToArray());//if >2gb file will err.
-                System.Diagnostics.Debug.WriteLine(fileName + "ЗАПИСАНО");
+
+                using var sw = new BinaryWriter(File.OpenWrite(fileFullPath));
+                foreach (byte b in SFTree.DecodeBytes(GetEncodedData(), fileLen, freqsInBytes))
+                    sw.Write(b);
+
+                System.Diagnostics.Debug.WriteLine(fileName + " ДЕКОДИРОВАН");
             }
         }
 

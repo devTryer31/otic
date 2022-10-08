@@ -77,7 +77,7 @@ namespace Zipper.ViewModels
         private async void StartCodeAndDecode(object p)
         {
             var sourceFolder = DevSettings.DefaultFolderToEncodePath;
-            if(sourceFolder is null)
+            if (sourceFolder is null)
                 throw new ArgumentException("Не установлена папка для кодирования по умолчанию в режиме разработчика");
 
             var dirs = Directory.EnumerateDirectories(sourceFolder).ToList();
@@ -137,12 +137,15 @@ namespace Zipper.ViewModels
                     await Task.Run(() =>
                         Compresser.Decode(faacFilePath, folderToDecodePath!)
                     );
-                    IsAlgoApplying = false;
                     MessageBox.Show($"{faacFilePath}\ndecoded in\n{folderToDecodePath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message, "Decoding error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    IsAlgoApplying = false;
                 }
             }
         }
@@ -153,7 +156,7 @@ namespace Zipper.ViewModels
 
         public bool AllSettingsPreseted =>
             !(string.IsNullOrWhiteSpace(_devSettings.DefaultFolderToDecodePath) ||
-            string.IsNullOrWhiteSpace(_devSettings.DefaultFolderToEncodePath)||
+            string.IsNullOrWhiteSpace(_devSettings.DefaultFolderToEncodePath) ||
             string.IsNullOrWhiteSpace(_devSettings.DefaultFaacFilePath))
             && MainWindowViewModel.IsDevModEnabled;
 
@@ -192,13 +195,22 @@ namespace Zipper.ViewModels
 
             if (!string.IsNullOrWhiteSpace(faacFilePath))
             {
-                IsAlgoApplying = true;
-                await Task.Run(() =>
-                    Compresser.Encode(faacFilePath, filesPaths, foldersPaths)
-                );
-
-                IsAlgoApplying = false;
-                MessageBox.Show($"Encoded in {faacFilePath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                try
+                {
+                    IsAlgoApplying = true;
+                    await Task.Run(() =>
+                        Compresser.Encode(faacFilePath, filesPaths, foldersPaths)
+                    );
+                    MessageBox.Show($"Encoded in {faacFilePath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Encoding error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    IsAlgoApplying = false;
+                }
             }
         }
 

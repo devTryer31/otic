@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace Zipper
@@ -44,6 +45,25 @@ namespace Zipper
             return ans;
         }
 
+        public static byte ToSingleByte(this IEnumerable<bool> bits)
+        {
+            byte currentByte = 0;
+            int bitsCounter = 0;
+            foreach(bool b in bits)
+            {
+                currentByte += (byte)(b ? 1 : 0);
+                bitsCounter++;
+                if (bitsCounter == 8)
+                    return currentByte;
+
+                currentByte <<= 1;
+            }
+            while(bitsCounter++ < 7)
+                currentByte <<= 1;
+
+            return currentByte;
+        }
+
         public static byte GetByteFromBits(this IEnumerable<bool> bits)
         {
             byte ans = (byte)(bits.First() ? 1 : 0);
@@ -54,5 +74,8 @@ namespace Zipper
             }
             return ans;
         }
+
+        public static bool IsEndOfStream(this Stream stream)
+            => stream.Length == stream.Position;
     }
 }
