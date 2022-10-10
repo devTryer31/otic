@@ -138,12 +138,12 @@ namespace Zipper
         public IEnumerable<byte> EncodeBytes()
         {
             var sr = new BinaryReader(_dataStream);
-            Queue<bool> buffer = new(sizeof(byte) * 2);
+            Queue<bool> buffer = new(8 * 2);
             while (!sr.BaseStream.IsEndOfStream())
             {
                 var code = _bytesCode[sr.ReadByte()];
                 code.ForEach(buffer.Enqueue);
-                if (buffer.Count >= 8)
+                while (buffer.Count >= 8)
                 {
                     yield return buffer.ToSingleByte();
                     byte cnt = 8;

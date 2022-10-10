@@ -83,7 +83,7 @@ namespace Zipper
                 sw.Write(nameBytes);
 
                 using var tree = new SFTree(File.OpenRead(f.FullName));
-                var freqBytes = tree.GetFrequenciesInBytes();
+                byte[] freqBytes = tree.GetFrequenciesInBytes();
                 sw.Write(freqBytes.Length);
                 sw.Write(freqBytes);
 
