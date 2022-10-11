@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,17 +8,20 @@ namespace Zipper
 {
     static public class Compresser
     {
-        private static byte[] _sig = new byte[] { 0xFA, 0xAA, 0xAA, 0xAC };
-        private const int _version = 1;
+        private static readonly byte[] _sig = new byte[] { 0xFA, 0xAA, 0xAA, 0xAC };
+        private const int _version = 3;
         private const byte _byteCompressWithContext = 0;
-        private const byte _byteCompress = 0;
+        private static EncodingType _byteCompress;
         private const byte _byteInterferenceProtection = 0;
-        private const byte _byteBuffer = 0;
+        private static ApplyModeType _byteApplyMode;
 
         private static readonly int _headerBytesCount = _sig.Length + 4 + 1 * 4;
 
-        public static FileInfo InitFile(in string resFilePath)
+        public static FileInfo InitFile(in string resFilePath, EncodingType baseEncoding, ApplyModeType applyMode)
         {
+            _byteCompress = baseEncoding;
+            _byteApplyMode = applyMode;
+
             if (resFilePath is null)
                 throw new ArgumentNullException(nameof(resFilePath));
 
@@ -29,15 +31,16 @@ namespace Zipper
             sw.Write(_sig);
             sw.Write(_version);
             sw.Write(_byteCompressWithContext);
-            sw.Write(_byteCompress);
+            sw.Write((byte)_byteCompress);
             sw.Write(_byteInterferenceProtection);
-            sw.Write(_byteBuffer);
+            sw.Write((byte)_byteApplyMode);
             return fileInfo;
         }
 
-        public static void Encode(in string resFilePath, in IEnumerable<string> filesPaths, in IEnumerable<string> foldersPaths)
+        public static void Encode(in string resFilePath, in IEnumerable<string> filesPaths, in IEnumerable<string> foldersPaths,
+            EncodingType baseEncodingType = EncodingType.ShenonFanon, ApplyModeType baseApplyModeType = ApplyModeType.ToEachFile)
         {
-            FileInfo fInfo = InitFile(resFilePath);
+            FileInfo fInfo = InitFile(resFilePath, baseEncodingType, baseApplyModeType);
             using var sw = new BinaryWriter(fInfo.OpenWrite());
             sw.Seek(_headerBytesCount, SeekOrigin.Begin);//Skip signature.
             long filesDataStartPosition = _headerBytesCount;
@@ -69,19 +72,35 @@ namespace Zipper
 
             //Writing all files (with in directories) data.
             //File item is [folderInfoPointer][lenName][Name][lenData][Data] struct.
+            if(_byteApplyMode == ApplyModeType.ToEachFile)
+                WriteFileEncodedInfoSeparately(sw, foldersPointers, allFiles);
+            else
+                WriteFileEncodedInfoComposely(sw, foldersPointers, allFiles);
+
+            System.Diagnostics.Debug.WriteLine(fInfo.Name + " ЗАКОДИРОВАНН");
+        }
+
+        private static void WriteFileNameWithFolderInfo(BinaryWriter sw, Dictionary<string, long> foldersPointers, FileInfo? f)
+        {
+            //Write folder info pointer written above.
+            var dInfo = foldersPointers.Keys.FirstOrDefault(k => f.DirectoryName?.EndsWith(k) is true);
+            if (dInfo is not null)
+                sw.Write(foldersPointers[dInfo]);
+            else
+                sw.Write(0L);
+
+            byte[] nameBytes = Encoding.UTF8.GetBytes(f.Name);
+            sw.Write(nameBytes.Length);
+            sw.Write(nameBytes);
+        }
+
+        private static void WriteFileEncodedInfoSeparately(BinaryWriter sw, Dictionary<string, long> foldersPointers, List<string> allFiles)
+        {
+            sw.Write((byte)ApplyModeType.ToEachFile);
             sw.Write(allFiles.Count);
             foreach (var f in allFiles.Select(p => new FileInfo(p)))
             {
-                //Write folder info pointer written above.
-                var dInfo = foldersPointers.Keys.FirstOrDefault(k => f.DirectoryName?.EndsWith(k) is true);
-                if (dInfo is not null)
-                    sw.Write(foldersPointers[dInfo]);
-                else
-                    sw.Write(0L);
-
-                byte[] nameBytes = Encoding.UTF8.GetBytes(f.Name);
-                sw.Write(nameBytes.Length);
-                sw.Write(nameBytes);
+                WriteFileNameWithFolderInfo(sw, foldersPointers, f);
 
                 using var tree = new SFTree(File.OpenRead(f.FullName));
                 byte[] freqBytes = tree.GetFrequenciesInBytes();
@@ -89,8 +108,8 @@ namespace Zipper
                 sw.Write(freqBytes);
 
                 sw.Write(f.Length);
-                tmpPtr = (int)sw.BaseStream.Position;
-                EncodingType encodingType = EncodingType.ShenonFanon;
+                int tmpPtr = (int)sw.BaseStream.Position;
+                EncodingType encodingType = _byteCompress;
                 sw.Write((byte)encodingType);
                 sw.Write(0L);//Encoded len
                 long codedFileDataLen = 0;
@@ -98,7 +117,7 @@ namespace Zipper
                 {
                     sw.Write(b);
                     ++codedFileDataLen;
-                    if(f.Length == codedFileDataLen)
+                    if (f.Length == codedFileDataLen)
                     {
                         encodingType = EncodingType.NoEncode;
                         break;
@@ -112,12 +131,47 @@ namespace Zipper
                 if (encodingType == EncodingType.NoEncode)
                 {
                     using var br = new BinaryReader(f.OpenRead());
-                    while(!br.BaseStream.IsEndOfStream())
+                    while (!br.BaseStream.IsEndOfStream())
                         sw.Write(br.ReadByte());
                 }
                 sw.Seek(tmpPtrLastPos, SeekOrigin.Begin);
             }
-            System.Diagnostics.Debug.WriteLine(fInfo.Name + " ЗАКОДИРОВАНН");
+        }
+
+        private static void WriteFileEncodedInfoComposely(BinaryWriter sw, Dictionary<string, long> foldersPointers, List<string> allFiles)
+        {
+            sw.Write((byte)ApplyModeType.LikeCompose);
+            sw.Write(allFiles.Count);
+            int startDataInfo = (int)sw.BaseStream.Position;
+            foreach (var f in allFiles.Select(p => new FileInfo(p)))
+            {
+                //Write folder info pointer written above.
+                WriteFileNameWithFolderInfo(sw, foldersPointers, f);
+
+                using var br = new BinaryReader(f.OpenRead());
+                while (!br.BaseStream.IsEndOfStream())
+                        sw.Write(br.ReadByte());
+            }
+            sw.Seek(startDataInfo, SeekOrigin.Begin);
+
+            using var tree = new SFTree(sw.BaseStream);
+            byte[] freqBytes = tree.GetFrequenciesInBytes();
+            sw.Write(freqBytes.Length);
+            sw.Write(freqBytes);
+
+            int tmpPtr = (int)sw.BaseStream.Position;
+            sw.Write(0L);//Encoded len
+            long codedFileDataLen = 0;
+            foreach (byte b in tree.EncodeBytes())
+            {
+                sw.Write(b);
+                ++codedFileDataLen;
+            }
+            //End ptr writed data
+            int tmpPtrLastPos = (int)sw.BaseStream.Position;
+            sw.Seek(tmpPtr, SeekOrigin.Begin);
+            sw.Write(codedFileDataLen);
+            sw.Seek(tmpPtrLastPos, SeekOrigin.Begin);
         }
 
         #region Folders processing
@@ -193,7 +247,7 @@ namespace Zipper
             if (byteCompressWithContext != _byteCompressWithContext)
                 throw new ArgumentException($"The compress with context version {byteCompressWithContext} is not supported. Current is {_byteCompressWithContext}");
             byte byteCompress = sr.ReadByte();
-            if (byteCompress != _byteCompress)
+            if (byteCompress != (byte)_byteCompress)
                 throw new ArgumentException($"The compress without context version {byteCompress} is not supported. Current is {_byteCompress}");
             byte byteInterferenceProtection = sr.ReadByte();
             if (byteInterferenceProtection != _byteInterferenceProtection)
