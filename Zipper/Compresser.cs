@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.VisualBasic;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -89,18 +90,31 @@ namespace Zipper
 
                 sw.Write(f.Length);
                 tmpPtr = (int)sw.BaseStream.Position;
-                sw.Write(0L);
+                EncodingType encodingType = EncodingType.ShenonFanon;
+                sw.Write((byte)encodingType);
+                sw.Write(0L);//Encoded len
                 long codedFileDataLen = 0;
-                System.Diagnostics.Debug.WriteLine("EncodeBytes");
                 foreach (byte b in tree.EncodeBytes())
                 {
-                    //System.Diagnostics.Debug.WriteLine(b);
                     sw.Write(b);
                     ++codedFileDataLen;
+                    if(f.Length == codedFileDataLen)
+                    {
+                        encodingType = EncodingType.NoEncode;
+                        break;
+                    }
                 }
+                //End ptr writed data
                 int tmpPtrLastPos = (int)sw.BaseStream.Position;
                 sw.Seek(tmpPtr, SeekOrigin.Begin);
+                sw.Write((byte)encodingType);
                 sw.Write(codedFileDataLen);
+                if (encodingType == EncodingType.NoEncode)
+                {
+                    using var br = new BinaryReader(f.OpenRead());
+                    while(!br.BaseStream.IsEndOfStream())
+                        sw.Write(br.ReadByte());
+                }
                 sw.Seek(tmpPtrLastPos, SeekOrigin.Begin);
             }
             System.Diagnostics.Debug.WriteLine(fInfo.Name + " ЗАКОДИРОВАНН");
@@ -214,6 +228,7 @@ namespace Zipper
                 var freqsInBytes = sr.ReadBytes(freqsLen);
 
                 long fileLen = sr.ReadInt64();
+                EncodingType encoding = (EncodingType)sr.ReadByte();
                 long encodedDataLen = sr.ReadInt64();
 
                 IEnumerable<byte> GetEncodedData()
@@ -234,8 +249,12 @@ namespace Zipper
                 string fileFullPath = Path.Combine(folderPath, folderInfo, fileName);
 
                 using var sw = new BinaryWriter(File.OpenWrite(fileFullPath));
-                foreach (byte b in SFTree.DecodeBytes(GetEncodedData(), fileLen, freqsInBytes))
-                    sw.Write(b);
+                if(encoding == EncodingType.ShenonFanon)
+                    foreach (byte b in SFTree.DecodeBytes(GetEncodedData(), fileLen, freqsInBytes))
+                        sw.Write(b);
+                else
+                    foreach (var b in GetEncodedData())
+                        sw.Write(b);
 
                 System.Diagnostics.Debug.WriteLine(fileName + " ДЕКОДИРОВАН");
             }
