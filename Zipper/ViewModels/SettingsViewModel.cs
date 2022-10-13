@@ -89,11 +89,14 @@ namespace Zipper.ViewModels
         private readonly string[] _encodingTypesWIthContext = new[]
         {
             _nonAlgorithmString,
+            "алгоритм RLE",
         };
 
         public string[] EncodingTypesWithContext => _encodingTypesWIthContext;
 
         private string _selectedEncodingTypeWithContext = _nonAlgorithmString;
+
+        //private static readonly RLEAlgoViewModel _rleAlgoViewModel = new();
 
         public string SelectedEncodingTypeWithContext
         {
@@ -103,6 +106,8 @@ namespace Zipper.ViewModels
                 Set(ref _selectedEncodingTypeWithContext, value);
                 if (_selectedEncodingTypeWithContext == _nonAlgorithmString)
                     AlgoContextedViewModel = _nonSettedAlgoViewModel;
+               // if (_selectedEncodingType == _encodingTypesWIthContext[1])
+                //    AlgoContextedViewModel = _rleAlgoViewModel;
             }
         }
 
