@@ -10,7 +10,7 @@ namespace Zipper.ViewModels
 		public MainWindowViewModel()
 		{
 			_compresserViewModel = new CompresserViewModel(this);
-			_settingsViewModel = new SettingsViewModel();
+			_settingsViewModel = new SettingsViewModel(_compresserViewModel);
 			_currentViewModel = _compresserViewModel;
 		}
 

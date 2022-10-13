@@ -1,20 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.IsolatedStorage;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media.Animation;
 
 namespace Zipper
 {
-    public static class RLE
+    public class RLE : IDisposable
     {
-        public static IEnumerable<byte> Encode(Stream dataStream)
+        private readonly Stream _dataStream;
+
+        public RLE(Stream dataStream)
+        {
+            _dataStream = dataStream;
+        }
+
+        public IEnumerable<byte> Encode()
         {
             List<byte> encodedBytes = new();
-            var sr = new BinaryReader(dataStream);
+            var sr = new BinaryReader(_dataStream);
 
             List<byte> bufferBytes = new();
             byte prev = sr.ReadByte();
@@ -96,10 +99,10 @@ namespace Zipper
             return encodedBytes;
         }
 
-        public static IEnumerable<byte> Decode(Stream dataStream)
+        public IEnumerable<byte> Decode()
         {
             List<byte> decodedBytes = new();
-            var sr = new BinaryReader(dataStream);
+            var sr = new BinaryReader(_dataStream);
 
             while (sr.BaseStream.Position != sr.BaseStream.Length)
             {
@@ -115,5 +118,8 @@ namespace Zipper
             }
             return decodedBytes;
         }
+
+        public void Dispose()
+            => _dataStream?.Dispose();
     }
 }

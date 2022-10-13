@@ -1,15 +1,17 @@
-﻿using Microsoft.VisualBasic;
+﻿#nullable disable
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Zipper.Common.Enums;
+using Zipper.EncodingAlgorithms;
 
 namespace Zipper
 {
     static public class Compresser
     {
-        private static byte[] _sig = new byte[] { 0xFA, 0xAA, 0xAA, 0xAC };
+        private static readonly byte[] _sig = new byte[] { 0xFA, 0xAA, 0xAA, 0xAC };
         private const int _version = 1;
         private const byte _byteCompressWithContext = 0;
         private const byte _byteCompress = 0;
@@ -35,7 +37,16 @@ namespace Zipper
             return fileInfo;
         }
 
-        public static void Encode(in string resFilePath, in IEnumerable<string> filesPaths, in IEnumerable<string> foldersPaths)
+        private static IEncodable GetAlgorithm(EncodingAlgosTypes type)
+            => type switch
+            {
+                EncodingAlgosTypes.RLE => new RLEAlgorithm(),
+                EncodingAlgosTypes.ShenonFano => new ShenonFanoAlgoritm(),
+                EncodingAlgosTypes.None => new NoneAlgorithm(),
+                _ => null,
+            };
+
+        public static void Encode(in string resFilePath, in IEnumerable<string> filesPaths, in IEnumerable<string> foldersPaths, EncodingAlgosTypes encodingType)
         {
             FileInfo fInfo = InitFile(resFilePath);
             using var sw = new BinaryWriter(fInfo.OpenWrite());
@@ -83,36 +94,34 @@ namespace Zipper
                 sw.Write(nameBytes.Length);
                 sw.Write(nameBytes);
 
-                using var tree = new SFTree(File.OpenRead(f.FullName));
-                byte[] freqBytes = tree.GetFrequenciesInBytes();
-                sw.Write(freqBytes.Length);
-                sw.Write(freqBytes);
-
                 sw.Write(f.Length);
+
                 tmpPtr = (int)sw.BaseStream.Position;
-                EncodingType encodingType = EncodingType.ShenonFanon;
                 sw.Write((byte)encodingType);
-                sw.Write(0L);//Encoded len
+                sw.Write(0L);//Encoded len, codedFileDataLen in future
+
+                using var algorithm = GetAlgorithm(encodingType);
                 long codedFileDataLen = 0;
-                foreach (byte b in tree.EncodeBytes())
+                foreach (byte b in algorithm.Encode(File.OpenRead(f.FullName), f.Length))
                 {
                     sw.Write(b);
                     ++codedFileDataLen;
-                    if(f.Length == codedFileDataLen)
-                    {
-                        encodingType = EncodingType.NoEncode;
-                        break;
-                    }
+                    //if (f.Length == codedFileDataLen)
+                    //{
+                    //    encodingType = EncodingAlgosTypes.None;
+                    //    break;
+                    //}
                 }
+
                 //End ptr writed data
                 int tmpPtrLastPos = (int)sw.BaseStream.Position;
                 sw.Seek(tmpPtr, SeekOrigin.Begin);
                 sw.Write((byte)encodingType);
                 sw.Write(codedFileDataLen);
-                if (encodingType == EncodingType.NoEncode)
+                if (encodingType == EncodingAlgosTypes.None)
                 {
                     using var br = new BinaryReader(f.OpenRead());
-                    while(!br.BaseStream.IsEndOfStream())
+                    while (!br.BaseStream.IsEndOfStream())
                         sw.Write(br.ReadByte());
                 }
                 sw.Seek(tmpPtrLastPos, SeekOrigin.Begin);
@@ -220,41 +229,18 @@ namespace Zipper
                 if (folderInfoPtr != 0L)
                     folderInfo = GetStringFromPointer(sr, folderInfoPtr);
 
-
                 int nameLen = sr.ReadInt32();
                 string fileName = Encoding.UTF8.GetString(sr.ReadBytes(nameLen));
-
-                int freqsLen = sr.ReadInt32();
-                var freqsInBytes = sr.ReadBytes(freqsLen);
-
                 long fileLen = sr.ReadInt64();
-                EncodingType encoding = (EncodingType)sr.ReadByte();
+
+                EncodingAlgosTypes encoding = (EncodingAlgosTypes)sr.ReadByte();
                 long encodedDataLen = sr.ReadInt64();
 
-                IEnumerable<byte> GetEncodedData()
-                {
-                    System.Diagnostics.Debug.WriteLine("GetEncodedData");
-                    int toRead = 6400;
-                    while (encodedDataLen > 0)
-                    {
-                        foreach (byte b in sr!.ReadBytes((int)Math.Min(toRead, encodedDataLen)))
-                        {
-                            //System.Diagnostics.Debug.WriteLine(b);
-                            yield return b;
-                        }
-                        encodedDataLen -= toRead;
-                    }
-                }
-
                 string fileFullPath = Path.Combine(folderPath, folderInfo, fileName);
-
                 using var sw = new BinaryWriter(File.OpenWrite(fileFullPath));
-                if(encoding == EncodingType.ShenonFanon)
-                    foreach (byte b in SFTree.DecodeBytes(GetEncodedData(), fileLen, freqsInBytes))
-                        sw.Write(b);
-                else
-                    foreach (var b in GetEncodedData())
-                        sw.Write(b);
+
+                foreach (byte b in GetAlgorithm(encoding).Decode(sr.BaseStream, encodedDataLen, fileLen))
+                    sw.Write(b);
 
                 System.Diagnostics.Debug.WriteLine(fileName + " ДЕКОДИРОВАН");
             }
