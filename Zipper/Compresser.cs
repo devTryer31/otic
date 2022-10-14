@@ -12,7 +12,7 @@ namespace Zipper
     static public class Compresser
     {
         private static readonly byte[] _sig = new byte[] { 0xFA, 0xAA, 0xAA, 0xAC };
-        private const int _version = 1;
+        private const int _version = 5;
         private const byte _byteCompressWithContext = 0;
         private const byte _byteCompress = 0;
         private const byte _byteInterferenceProtection = 0;
