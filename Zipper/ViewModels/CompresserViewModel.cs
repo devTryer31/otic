@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Zipper.Commands;
+using Zipper.Common.Enums;
 using Zipper.Models;
 
 namespace Zipper.ViewModels
@@ -66,6 +67,21 @@ namespace Zipper.ViewModels
             set => Set(ref _isAlgoApplying, value);
         }
 
+        private EncodingAlgosTypes _currentContextedEncoding;
+
+        public EncodingAlgosTypes CurrentContextedEncoding
+        {
+            get => _currentContextedEncoding;
+            set => Set(ref _currentContextedEncoding, value);
+        }
+
+        private EncodingAlgosTypes _currentNonContextedEncoding;
+
+        public EncodingAlgosTypes CurrentNoneContextedEncoding
+        {
+            get => _currentNonContextedEncoding;
+            set => Set(ref _currentNonContextedEncoding, value);
+        }
         #endregion NotyProps
 
         #region Commands
@@ -199,7 +215,12 @@ namespace Zipper.ViewModels
                 {
                     IsAlgoApplying = true;
                     await Task.Run(() =>
-                        Compresser.Encode(faacFilePath, filesPaths, foldersPaths)
+                    {
+                        if(CurrentNoneContextedEncoding != EncodingAlgosTypes.None)
+                            Compresser.Encode(faacFilePath, filesPaths, foldersPaths, CurrentNoneContextedEncoding);
+                        else if(CurrentContextedEncoding != EncodingAlgosTypes.None)
+                            Compresser.Encode(faacFilePath, filesPaths, foldersPaths, CurrentContextedEncoding);
+                    }
                     );
                     MessageBox.Show($"Encoded in {faacFilePath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 }

@@ -1,4 +1,5 @@
-﻿using Zipper.ViewModels.Algos;
+﻿using Zipper.Common.Enums;
+using Zipper.ViewModels.Algos;
 
 namespace Zipper.ViewModels
 {
@@ -7,6 +8,13 @@ namespace Zipper.ViewModels
         #region Edits
 
         private static readonly ViewModelBase _nonSettedAlgoViewModel = new NonAlgoViewModel();
+        private static readonly ViewModelBase _rleAlgoViewModel = new RLEAlgoSettingsViewModel();
+
+        private readonly CompresserViewModel _compresserViewModel;
+        public SettingsViewModel(CompresserViewModel compresserViewModel)
+        {
+            _compresserViewModel = compresserViewModel;
+        }
 
         private ViewModelBase _algoWitoutContextViewModel = _nonSettedAlgoViewModel;
 
@@ -80,15 +88,22 @@ namespace Zipper.ViewModels
             {
                 Set(ref _selectedEncodingType, value);
                 if (_selectedEncodingType == _nonAlgorithmString)
+                {
                     AlgoWitoutContextViewModel = _nonSettedAlgoViewModel;
+                    _compresserViewModel.CurrentNoneContextedEncoding = EncodingAlgosTypes.None;
+                }
                 if(_selectedEncodingType == _encodingTypes[1])
+                {
+                    _compresserViewModel.CurrentNoneContextedEncoding = EncodingAlgosTypes.ShenonFano;
                     AlgoWitoutContextViewModel = _shenonFanoAlgoViewModel;
+                }
             }
         }
 
         private readonly string[] _encodingTypesWIthContext = new[]
         {
             _nonAlgorithmString,
+            "Алгоритм RLE",
         };
 
         public string[] EncodingTypesWithContext => _encodingTypesWIthContext;
@@ -102,7 +117,15 @@ namespace Zipper.ViewModels
             {
                 Set(ref _selectedEncodingTypeWithContext, value);
                 if (_selectedEncodingTypeWithContext == _nonAlgorithmString)
+                {
+                    _compresserViewModel.CurrentContextedEncoding = EncodingAlgosTypes.None;
                     AlgoContextedViewModel = _nonSettedAlgoViewModel;
+                }
+                if (_selectedEncodingTypeWithContext == _encodingTypesWIthContext[1])
+                {
+                    _compresserViewModel.CurrentContextedEncoding = EncodingAlgosTypes.RLE;
+                    AlgoContextedViewModel = _rleAlgoViewModel;
+                }
             }
         }
 

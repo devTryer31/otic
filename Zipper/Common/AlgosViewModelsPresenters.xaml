@@ -6,6 +6,10 @@
         <TextBlock Text="Нет настроек для неустановленного алгоритма"/>
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type vm:RLEAlgoSettingsViewModel}">
+        <TextBlock Text="Нет настроек для неустановленного алгоритма"/>
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type vm:ShenonFanoAlgoViewModel}">
         <DockPanel>
             <CheckBox IsChecked="{Binding ApplyAlgoToEachFile}"
