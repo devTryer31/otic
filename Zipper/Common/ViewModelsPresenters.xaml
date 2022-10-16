@@ -72,7 +72,7 @@
                         <StaticResource ResourceKey="EditAlgorithmIcon"/>
                     </ToggleButton>
                     <ComboBox ItemsSource="{Binding EncodingTypes}"
-                      SelectedItem="{Binding SelectedEncodingType}">
+                      SelectedItem="{Binding SelectedEncodingType, UpdateSourceTrigger=PropertyChanged}">
                     </ComboBox>
                 </DockPanel>
                 <ContentControl Content="{Binding AlgoWitoutContextViewModel, UpdateSourceTrigger=PropertyChanged}"
@@ -85,7 +85,7 @@
                         <StaticResource ResourceKey="EditAlgorithmIcon"/>
                     </ToggleButton>
                     <ComboBox ItemsSource="{Binding EncodingTypesWithContext}"
-                      SelectedItem="{Binding SelectedEncodingTypeWithContext}">
+                      SelectedItem="{Binding SelectedEncodingTypeWithContext, UpdateSourceTrigger=PropertyChanged}">
                     </ComboBox>
                 </DockPanel>
                 <ContentControl Content="{Binding AlgoContextedViewModel, UpdateSourceTrigger=PropertyChanged}"
@@ -98,7 +98,7 @@
                         <StaticResource ResourceKey="EditAlgorithmIcon"/>
                     </ToggleButton>
                     <ComboBox ItemsSource="{Binding InterferenceProtectionTypres}"
-                      SelectedItem="{Binding SelectedinterferenceProtection}">
+                      SelectedItem="{Binding SelectedinterferenceProtection}" IsEnabled="False">
                     </ComboBox>
                 </DockPanel>
                 <ContentControl Content="{Binding AlgoInterferenceProtViewModel , UpdateSourceTrigger=PropertyChanged}"

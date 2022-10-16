@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Zipper.EncodingAlgorithms.Utils;
 
-namespace Zipper
+namespace Zipper.EncodingAlgorithms.Core
 {
     using FrequencyList = List<(byte Byte, byte Count)>;
     using BytesCodes = Dictionary<byte, List<bool>>;
@@ -182,7 +183,7 @@ namespace Zipper
             currentLen = minLen;
             List<bool> currentBits = new();
 
-            foreach(byte b in data)
+            foreach (byte b in data)
             {
                 byte current = b;
 
@@ -199,7 +200,7 @@ namespace Zipper
                         {
                             yield return revertedBytesCode[currentBits];
                             --startBytesLen;
-                            if(startBytesLen == 0)
+                            if (startBytesLen == 0)
                                 goto GOOD_END;
                             currentBits.Clear();
                             currentLen = minLen - 1;
@@ -209,7 +210,7 @@ namespace Zipper
                 }
             }
             throw new ArgumentException("Невернный фромат входных байтов");
-            GOOD_END:;
+        GOOD_END:;
         }
 
         public void Dispose()

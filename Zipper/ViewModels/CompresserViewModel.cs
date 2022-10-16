@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -211,18 +212,31 @@ namespace Zipper.ViewModels
 
             if (!string.IsNullOrWhiteSpace(faacFilePath))
             {
+                EncodingAlgosTypes? aplyingAlgo = null;
+                if (CurrentNoneContextedEncoding != EncodingAlgosTypes.None)
+                {
+                    aplyingAlgo = CurrentNoneContextedEncoding;
+                }
+                else if (CurrentContextedEncoding != EncodingAlgosTypes.None)
+                {
+                    aplyingAlgo = CurrentContextedEncoding;
+                }
+                else
+                {
+                    var messageResult = MessageBox.Show($"Encoding type nos selected. Are you shure to build simple compose file witout compressing?",
+                        "Warning", MessageBoxButton.OKCancel, MessageBoxImage.Information);
+                    if (messageResult == MessageBoxResult.OK)
+                        aplyingAlgo = EncodingAlgosTypes.None;
+                }
                 try
                 {
-                    IsAlgoApplying = true;
-                    await Task.Run(() =>
+                    if (aplyingAlgo.HasValue)
                     {
-                        if(CurrentNoneContextedEncoding != EncodingAlgosTypes.None)
-                            Compresser.Encode(faacFilePath, filesPaths, foldersPaths, CurrentNoneContextedEncoding);
-                        else if(CurrentContextedEncoding != EncodingAlgosTypes.None)
-                            Compresser.Encode(faacFilePath, filesPaths, foldersPaths, CurrentContextedEncoding);
+                        IsAlgoApplying = true;
+                        await Task.Run(
+                            () => Compresser.Encode(faacFilePath, filesPaths, foldersPaths, aplyingAlgo.Value));
+                        MessageBox.Show($"Encoded in {faacFilePath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
-                    );
-                    MessageBox.Show($"Encoded in {faacFilePath}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {

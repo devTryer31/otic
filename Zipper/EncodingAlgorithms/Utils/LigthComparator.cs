@@ -2,14 +2,14 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Zipper
+namespace Zipper.EncodingAlgorithms.Utils
 {
     class LigthComparator<T> : IEqualityComparer<T>
     {
         private readonly Func<T, T, bool> _equalFunc;
-        private readonly Func<T, int> _getHashFunc;
+        private readonly Func<T, int>? _getHashFunc;
 
-        public LigthComparator(Func<T, T, bool> equalFunc, Func<T, int> getHashFunc = null)
+        public LigthComparator(Func<T, T, bool> equalFunc, Func<T, int>? getHashFunc = null)
         {
             _equalFunc = equalFunc;
             _getHashFunc = getHashFunc;

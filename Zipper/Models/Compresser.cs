@@ -6,8 +6,9 @@ using System.Linq;
 using System.Text;
 using Zipper.Common.Enums;
 using Zipper.EncodingAlgorithms;
+using Zipper.EncodingAlgorithms.Utils;
 
-namespace Zipper
+namespace Zipper.Models
 {
     static public class Compresser
     {
@@ -102,7 +103,8 @@ namespace Zipper
 
                 using var algorithm = GetAlgorithm(encodingType);
                 long codedFileDataLen = 0;
-                foreach (byte b in algorithm.Encode(File.OpenRead(f.FullName), f.Length))
+                var res = algorithm.Encode(File.OpenRead(f.FullName), f.Length).ToArray();
+                foreach (byte b in res)
                 {
                     sw.Write(b);
                     ++codedFileDataLen;
@@ -239,8 +241,13 @@ namespace Zipper
                 string fileFullPath = Path.Combine(folderPath, folderInfo, fileName);
                 using var sw = new BinaryWriter(File.OpenWrite(fileFullPath));
 
+                long startPos = sw.BaseStream.Position;
+
                 foreach (byte b in GetAlgorithm(encoding).Decode(sr.BaseStream, encodedDataLen, fileLen))
                     sw.Write(b);
+
+                if (sw.BaseStream.Position - startPos != fileLen)
+                    throw new InvalidOperationException("Decode faild. Decoded data length and none-encoded data len are not the same.");
 
                 System.Diagnostics.Debug.WriteLine(fileName + " ДЕКОДИРОВАН");
             }
