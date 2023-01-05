@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
-namespace Zipper
+namespace Zipper.EncodingAlgorithms.Utils
 {
     public static class BitHelper
     {
@@ -49,7 +50,7 @@ namespace Zipper
         {
             byte currentByte = 0;
             int bitsCounter = 0;
-            foreach(bool b in bits)
+            foreach (bool b in bits)
             {
                 currentByte += (byte)(b ? 1 : 0);
                 bitsCounter++;
@@ -58,7 +59,7 @@ namespace Zipper
 
                 currentByte <<= 1;
             }
-            while(bitsCounter++ < 7)
+            while (bitsCounter++ < 7)
                 currentByte <<= 1;
 
             return currentByte;
@@ -75,6 +76,7 @@ namespace Zipper
             return ans;
         }
 
+        [DebuggerHidden]
         public static bool IsEndOfStream(this Stream stream)
             => stream.Length == stream.Position;
     }

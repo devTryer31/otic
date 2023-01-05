@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Zipper.EncodingAlgorithms.Core;
 using Zipper.EncodingAlgorithms.Utils;
 
 namespace Zipper.EncodingAlgorithms

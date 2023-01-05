@@ -86,14 +86,18 @@ namespace Zipper.ViewModels
             get => _selectedEncodingType;
             set
             {
-                Set(ref _selectedEncodingType, value);
+                if(!Set(ref _selectedEncodingType, value))
+                    return;
                 if (_selectedEncodingType == _nonAlgorithmString)
                 {
                     AlgoWitoutContextViewModel = _nonSettedAlgoViewModel;
                     _compresserViewModel.CurrentNoneContextedEncoding = EncodingAlgosTypes.None;
                 }
-                if(_selectedEncodingType == _encodingTypes[1])
+                else if(_selectedEncodingType == _encodingTypes[1])
                 {
+                    _compresserViewModel.CurrentContextedEncoding = EncodingAlgosTypes.None;
+                    SelectedEncodingTypeWithContext = _nonAlgorithmString;
+
                     _compresserViewModel.CurrentNoneContextedEncoding = EncodingAlgosTypes.ShenonFano;
                     AlgoWitoutContextViewModel = _shenonFanoAlgoViewModel;
                 }
@@ -115,14 +119,18 @@ namespace Zipper.ViewModels
             get => _selectedEncodingTypeWithContext;
             set
             {
-                Set(ref _selectedEncodingTypeWithContext, value);
+                if(!Set(ref _selectedEncodingTypeWithContext, value))
+                    return;
                 if (_selectedEncodingTypeWithContext == _nonAlgorithmString)
                 {
                     _compresserViewModel.CurrentContextedEncoding = EncodingAlgosTypes.None;
                     AlgoContextedViewModel = _nonSettedAlgoViewModel;
                 }
-                if (_selectedEncodingTypeWithContext == _encodingTypesWIthContext[1])
+                else if (_selectedEncodingTypeWithContext == _encodingTypesWIthContext[1])
                 {
+                    _compresserViewModel.CurrentNoneContextedEncoding = EncodingAlgosTypes.None;
+                    SelectedEncodingType = _nonAlgorithmString;
+
                     _compresserViewModel.CurrentContextedEncoding = EncodingAlgosTypes.RLE;
                     AlgoContextedViewModel = _rleAlgoViewModel;
                 }
